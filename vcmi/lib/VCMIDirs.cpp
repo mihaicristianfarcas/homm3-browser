@@ -251,7 +251,8 @@ public:
 	bfs::path libraryPath() const override { return "/vcmi"; }
 	bfs::path binaryPath() const override { return "/vcmi"; }
 
-	std::string libraryName(const std::string & basename) const override { return basename; }
+	// AIs are linked statically, but they are still selected by their library file name (see CDynLibHandler)
+	std::string libraryName(const std::string & basename) const override { return "lib" + basename + ".so"; }
 
 	bool developmentMode() const override { return false; }
 };

@@ -119,6 +119,18 @@ const browser = await puppeteer.launch({
 const page = (await browser.pages())[0] ?? await browser.newPage();
 
 page.on('console', (msg) => record(`[${msg.type()}] ${msg.text()}`));
+// uncaught exceptions in game threads (workers), with stack traces
+page.on('workercreated', (worker) => {
+	const session = worker.client;
+	if (!session?.on)
+		return;
+	session.on('Runtime.exceptionThrown', ({ exceptionDetails }) => {
+		const frames = exceptionDetails.stackTrace?.callFrames ?? [];
+		record(`[worker exception] ${exceptionDetails.exception?.description ?? exceptionDetails.text}\n` +
+			frames.slice(0, 40).map((f) => `    at ${f.functionName || '?'} (${f.url.split('/').pop()}:${f.lineNumber}:${f.columnNumber})`).join('\n'));
+	});
+	session.send('Runtime.enable').catch(() => {});
+});
 // the launcher asks before leaving a running game - tests navigate away on purpose
 page.on('dialog', (dialog) => dialog.accept());
 page.on('pageerror', (err) => record(`[pageerror] ${err.message}`));
