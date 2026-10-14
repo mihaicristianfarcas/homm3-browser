@@ -57,7 +57,10 @@ public:
 private:
 	si64 clock() 
 	{
-	#if defined(__FreeBSD__) || defined(__OpenBSD__) // TODO: enable also for Apple?
+	#if defined(__EMSCRIPTEN__)
+		// CPU time is not available in browsers, use wall clock instead
+		return std::chrono::duration_cast<std::chrono::microseconds>(std::chrono::steady_clock::now().time_since_epoch()).count() * TO_MS_DIVISOR / 1000;
+	#elif defined(__FreeBSD__) || defined(__OpenBSD__) // TODO: enable also for Apple?
 		struct rusage usage;
 		getrusage(RUSAGE_SELF, &usage);
 		return static_cast<si64>(usage.ru_utime.tv_sec + usage.ru_stime.tv_sec) * 1000000 + usage.ru_utime.tv_usec + usage.ru_stime.tv_usec;

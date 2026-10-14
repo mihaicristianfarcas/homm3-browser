@@ -73,8 +73,26 @@ private:
 	si64 dataStart;
 	si64 dataSize;
 
+#ifdef VCMI_EMSCRIPTEN
+	// In browsers every file system call is a round trip to the storage thread, and seeking a
+	// std::fstream discards its buffer. So this tracks the read position itself and reads
+	// through its own buffer with pread, never seeking.
+	static constexpr si64 bufferCapacity = 64 * 1024;
+
+	int fileDescriptor = -1;
+	si64 position = 0; ///< relative to dataStart
+	std::vector<ui8> buffer;
+	si64 bufferOffset = 0; ///< absolute file offset of buffer contents
+	si64 bufferSize = 0;
+
+public:
+	~CFileInputStream();
+	CFileInputStream(const CFileInputStream &) = delete;
+	CFileInputStream & operator=(const CFileInputStream &) = delete;
+#else
 	/** Native c++ input file stream object. */
 	std::fstream fileStream;
+#endif
 };
 
 VCMI_LIB_NAMESPACE_END
