@@ -1,0 +1,9 @@
+{
+	"name": "homm3-browser-tests",
+	"private": true,
+	"type": "module",
+	"description": "Browser automation for testing the web build in Helium, Firefox and Safari",
+	"dependencies": {
+		"puppeteer-core": "^24.0.0"
+	}
+}

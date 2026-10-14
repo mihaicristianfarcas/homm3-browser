@@ -38,8 +38,31 @@ fetch() { # url dest-dir
 }
 
 ports() {
-	echo "==> Building Emscripten zlib port"
-	embuilder build zlib >/dev/null
+	echo "==> Building Emscripten ports"
+	embuilder build zlib sdl2-mt >/dev/null
+
+	# SDL2's Emscripten backend assumes it runs on the browser main thread (GL contexts through EGL
+	# emulation, parts of audio setup). The game runs in a worker, so the port source is patched.
+	local patch="$ROOT/patches/sdl2-emscripten-worker-thread.patch"
+	local checksum src
+	checksum="$(shasum "$patch" | cut -d' ' -f1)"
+	src="$(ls -d "$(em-config CACHE)"/ports/sdl2/SDL-* | head -1)"
+	if [[ "$(cat "$src/.vcmi-patched" 2>/dev/null)" != "$checksum" ]]; then
+		if [[ -f "$src/.vcmi-patched" ]]; then
+			# patched with an older version - fetch pristine sources again
+			rm -rf "$(em-config CACHE)/ports/sdl2"
+			embuilder build sdl2-mt >/dev/null
+			src="$(ls -d "$(em-config CACHE)"/ports/sdl2/SDL-* | head -1)"
+		fi
+		echo "==> Patching SDL2 port in $src"
+		patch -p1 -d "$src" < "$patch"
+		echo "$checksum" > "$src/.vcmi-patched"
+		embuilder build sdl2-mt --force >/dev/null
+	fi
+
+	# Build the remaining ports up front: building them on demand from parallel compile jobs
+	# trips over Emscripten's cache lock
+	embuilder build harfbuzz-mt freetype-legacysjlj sdl2_ttf-mt libpng-mt-legacysjlj ogg vorbis mpg123 libjpeg >/dev/null
 }
 
 boost() {

@@ -1,0 +1,276 @@
+diff --color -ruN a/include/SDL_config_emscripten.h b/include/SDL_config_emscripten.h
+--- a/include/SDL_config_emscripten.h	2026-10-14 17:03:25
++++ b/include/SDL_config_emscripten.h	2026-10-14 17:03:55
+@@ -205,7 +205,7 @@
+ /* #undef SDL_VIDEO_OPENGL_CGL */
+ /* #undef SDL_VIDEO_OPENGL_GLX */
+ /* #undef SDL_VIDEO_OPENGL_WGL */
+-#define SDL_VIDEO_OPENGL_EGL 1
++/* #undef SDL_VIDEO_OPENGL_EGL */ /* WebGL contexts are created directly, see SDL_emscriptenopengles.c */
+ /* #undef SDL_VIDEO_OPENGL_OSMESA */
+ /* #undef SDL_VIDEO_OPENGL_OSMESA_DYNAMIC */
+ 
+diff --color -ruN a/src/audio/emscripten/SDL_emscriptenaudio.c b/src/audio/emscripten/SDL_emscriptenaudio.c
+--- a/src/audio/emscripten/SDL_emscriptenaudio.c	2026-10-14 17:05:33
++++ b/src/audio/emscripten/SDL_emscriptenaudio.c	2026-10-14 17:05:33
+@@ -269,8 +269,8 @@
+ #endif
+     this->hidden = (struct SDL_PrivateAudioData *)0x1;
+ 
+-    /* limit to native freq */
+-    this->spec.freq = EM_ASM_INT({
++    /* limit to native freq (the audio context lives on the main thread, SDL may be running in a worker) */
++    this->spec.freq = MAIN_THREAD_EM_ASM_INT({
+       var SDL2 = Module['SDL2'];
+       return SDL2.audioContext.sampleRate;
+     });
+diff --color -ruN a/src/video/emscripten/SDL_emscriptenopengles.c b/src/video/emscripten/SDL_emscriptenopengles.c
+--- a/src/video/emscripten/SDL_emscriptenopengles.c	2026-10-14 17:03:25
++++ b/src/video/emscripten/SDL_emscriptenopengles.c	2026-10-14 17:03:55
+@@ -20,81 +20,128 @@
+ */
+ #include "../../SDL_internal.h"
+ 
+-#if defined(SDL_VIDEO_DRIVER_EMSCRIPTEN) && defined(SDL_VIDEO_OPENGL_EGL)
++#if defined(SDL_VIDEO_DRIVER_EMSCRIPTEN) && defined(SDL_VIDEO_OPENGL_ES2)
+ 
++/* WebGL implementation of SDL OpenGL support.
++ *
++ * Unlike the EGL emulation (which Emscripten always runs on the browser main thread), the
++ * html5_webgl API creates the context on the calling thread. Together with OffscreenCanvas
++ * this lets SDL render from a worker thread, e.g. when the app is built with PROXY_TO_PTHREAD.
++ * Same approach as SDL3's Emscripten backend. */
++
+ #include <emscripten/emscripten.h>
++#include <emscripten/html5_webgl.h>
+ #include <GLES2/gl2.h>
+ 
+ #include "SDL_emscriptenvideo.h"
+ #include "SDL_emscriptenopengles.h"
+ #include "SDL_hints.h"
+ 
+-#define LOAD_FUNC(NAME) _this->egl_data->NAME = NAME;
++int Emscripten_GLES_LoadLibrary(_THIS, const char *path)
++{
++    return 0;
++}
+ 
+-/* EGL implementation of SDL OpenGL support */
++void Emscripten_GLES_UnloadLibrary(_THIS)
++{
++}
+ 
+-int Emscripten_GLES_LoadLibrary(_THIS, const char *path)
++void *Emscripten_GLES_GetProcAddress(_THIS, const char *proc)
+ {
+-    /*we can't load EGL dynamically*/
+-    _this->egl_data = (struct SDL_EGL_VideoData *) SDL_calloc(1, sizeof(SDL_EGL_VideoData));
+-    if (!_this->egl_data) {
+-        return SDL_OutOfMemory();
++    return emscripten_webgl_get_proc_address(proc);
++}
++
++int Emscripten_GLES_SetSwapInterval(_THIS, int interval)
++{
++    if (interval < 0) {
++        return SDL_SetError("Late swap tearing currently unsupported");
+     }
++    /* presentation is paced by the browser: frames are shown when the thread yields to its event loop */
++    return 0;
++}
+ 
+-    /* Emscripten forces you to manually cast eglGetProcAddress to the real
+-       function type; grep for "__eglMustCastToProperFunctionPointerType" in
+-       Emscripten's egl.h for details. */
+-    _this->egl_data->eglGetProcAddress = (void *(EGLAPIENTRY *)(const char *)) eglGetProcAddress;
++int Emscripten_GLES_GetSwapInterval(_THIS)
++{
++    return 1;
++}
+ 
+-    LOAD_FUNC(eglGetDisplay);
+-    LOAD_FUNC(eglInitialize);
+-    LOAD_FUNC(eglTerminate);
+-    LOAD_FUNC(eglChooseConfig);
+-    LOAD_FUNC(eglGetConfigAttrib);
+-    LOAD_FUNC(eglCreateContext);
+-    LOAD_FUNC(eglDestroyContext);
+-    LOAD_FUNC(eglCreateWindowSurface);
+-    LOAD_FUNC(eglDestroySurface);
+-    LOAD_FUNC(eglMakeCurrent);
+-    LOAD_FUNC(eglSwapBuffers);
+-    LOAD_FUNC(eglSwapInterval);
+-    LOAD_FUNC(eglWaitNative);
+-    LOAD_FUNC(eglWaitGL);
+-    LOAD_FUNC(eglBindAPI);
+-    LOAD_FUNC(eglQueryString);
+-    LOAD_FUNC(eglGetError);
++SDL_GLContext Emscripten_GLES_CreateContext(_THIS, SDL_Window *window)
++{
++    SDL_WindowData *window_data = (SDL_WindowData *)window->driverdata;
++    EmscriptenWebGLContextAttributes attribs;
++    EMSCRIPTEN_WEBGL_CONTEXT_HANDLE context;
+ 
+-    _this->egl_data->egl_display = _this->egl_data->eglGetDisplay(EGL_DEFAULT_DISPLAY);
+-    if (!_this->egl_data->egl_display) {
+-        return SDL_SetError("Could not get EGL display");
+-    }
++    emscripten_webgl_init_context_attributes(&attribs);
+ 
+-    if (_this->egl_data->eglInitialize(_this->egl_data->egl_display, NULL, NULL) != EGL_TRUE) {
+-        return SDL_SetError("Could not initialize EGL");
++    attribs.alpha = _this->gl_config.alpha_size > 0;
++    attribs.depth = _this->gl_config.depth_size > 0;
++    attribs.stencil = _this->gl_config.stencil_size > 0;
++    attribs.antialias = _this->gl_config.multisamplebuffers == 1;
++    attribs.majorVersion = _this->gl_config.major_version >= 3 ? 2 : 1;
++    attribs.minorVersion = 0;
++    attribs.enableExtensionsByDefault = 1;
++    attribs.powerPreference = EM_WEBGL_POWER_PREFERENCE_HIGH_PERFORMANCE;
++
++    context = emscripten_webgl_create_context(window_data->canvas_id, &attribs);
++    if (context <= 0 && attribs.majorVersion == 2) {
++        /* WebGL 2 unavailable, fall back to WebGL 1 */
++        attribs.majorVersion = 1;
++        context = emscripten_webgl_create_context(window_data->canvas_id, &attribs);
+     }
++    if (context <= 0) {
++        SDL_SetError("Could not create WebGL context (error %d)", (int)context);
++        return NULL;
++    }
+ 
+-    if (path) {
+-        SDL_strlcpy(_this->gl_config.driver_path, path, sizeof(_this->gl_config.driver_path) - 1);
+-    } else {
+-        *_this->gl_config.driver_path = '\0';
++    if (emscripten_webgl_make_context_current(context) != EMSCRIPTEN_RESULT_SUCCESS) {
++        emscripten_webgl_destroy_context(context);
++        SDL_SetError("Could not make WebGL context current");
++        return NULL;
+     }
+ 
+-    return 0;
++    window_data->gl_context = context;
++    return (SDL_GLContext)context;
+ }
+ 
+-SDL_EGL_CreateContext_impl(Emscripten)
+-SDL_EGL_MakeCurrent_impl(Emscripten)
++void Emscripten_GLES_DeleteContext(_THIS, SDL_GLContext context)
++{
++    SDL_Window *window;
+ 
++    /* remove the context from its window */
++    for (window = _this->windows; window; window = window->next) {
++        SDL_WindowData *window_data = (SDL_WindowData *)window->driverdata;
++        if (window_data && window_data->gl_context == (EMSCRIPTEN_WEBGL_CONTEXT_HANDLE)context) {
++            window_data->gl_context = 0;
++        }
++    }
++
++    emscripten_webgl_destroy_context((EMSCRIPTEN_WEBGL_CONTEXT_HANDLE)context);
++}
++
+ int Emscripten_GLES_SwapWindow(_THIS, SDL_Window *window)
+ {
+-    EGLBoolean ret = SDL_EGL_SwapBuffers(_this, ((SDL_WindowData *) window->driverdata)->egl_surface);
+     if (emscripten_has_asyncify() && SDL_GetHintBoolean(SDL_HINT_EMSCRIPTEN_ASYNCIFY, SDL_TRUE)) {
+         /* give back control to browser for screen refresh */
+         emscripten_sleep(0);
+     }
+-    return ret;
++    return 0;
+ }
+ 
+-#endif /* SDL_VIDEO_DRIVER_EMSCRIPTEN && SDL_VIDEO_OPENGL_EGL */
++int Emscripten_GLES_MakeCurrent(_THIS, SDL_Window *window, SDL_GLContext context)
++{
++    if (window && context) {
++        SDL_WindowData *window_data = (SDL_WindowData *)window->driverdata;
++        if (window_data->gl_context != (EMSCRIPTEN_WEBGL_CONTEXT_HANDLE)context) {
++            return SDL_SetError("Cannot make context current to another window");
++        }
++    }
++
++    if (emscripten_webgl_make_context_current((EMSCRIPTEN_WEBGL_CONTEXT_HANDLE)context) != EMSCRIPTEN_RESULT_SUCCESS) {
++        return SDL_SetError("Unable to make context current");
++    }
++    return 0;
++}
++
++#endif /* SDL_VIDEO_DRIVER_EMSCRIPTEN && SDL_VIDEO_OPENGL_ES2 */
+ 
+ /* vi: set ts=4 sw=4 expandtab: */
+diff --color -ruN a/src/video/emscripten/SDL_emscriptenopengles.h b/src/video/emscripten/SDL_emscriptenopengles.h
+--- a/src/video/emscripten/SDL_emscriptenopengles.h	2026-10-14 17:03:25
++++ b/src/video/emscripten/SDL_emscriptenopengles.h	2026-10-14 17:03:55
+@@ -23,25 +23,22 @@
+ #ifndef SDL_emscriptenopengles_h_
+ #define SDL_emscriptenopengles_h_
+ 
+-#if defined(SDL_VIDEO_DRIVER_EMSCRIPTEN) && defined(SDL_VIDEO_OPENGL_EGL)
++#if defined(SDL_VIDEO_DRIVER_EMSCRIPTEN) && defined(SDL_VIDEO_OPENGL_ES2)
+ 
+ #include "../SDL_sysvideo.h"
+-#include "../SDL_egl_c.h"
+ 
+-/* OpenGLES functions */
+-#define Emscripten_GLES_GetAttribute SDL_EGL_GetAttribute
+-#define Emscripten_GLES_GetProcAddress SDL_EGL_GetProcAddress
+-#define Emscripten_GLES_UnloadLibrary SDL_EGL_UnloadLibrary
+-#define Emscripten_GLES_SetSwapInterval SDL_EGL_SetSwapInterval
+-#define Emscripten_GLES_GetSwapInterval SDL_EGL_GetSwapInterval
+-#define Emscripten_GLES_DeleteContext SDL_EGL_DeleteContext
+-
++/* OpenGLES functions, implemented on top of Emscripten's WebGL API */
+ extern int Emscripten_GLES_LoadLibrary(_THIS, const char *path);
+-extern SDL_GLContext Emscripten_GLES_CreateContext(_THIS, SDL_Window * window);
+-extern int Emscripten_GLES_SwapWindow(_THIS, SDL_Window * window);
+-extern int Emscripten_GLES_MakeCurrent(_THIS, SDL_Window * window, SDL_GLContext context);
++extern void Emscripten_GLES_UnloadLibrary(_THIS);
++extern void *Emscripten_GLES_GetProcAddress(_THIS, const char *proc);
++extern int Emscripten_GLES_SetSwapInterval(_THIS, int interval);
++extern int Emscripten_GLES_GetSwapInterval(_THIS);
++extern SDL_GLContext Emscripten_GLES_CreateContext(_THIS, SDL_Window *window);
++extern void Emscripten_GLES_DeleteContext(_THIS, SDL_GLContext context);
++extern int Emscripten_GLES_SwapWindow(_THIS, SDL_Window *window);
++extern int Emscripten_GLES_MakeCurrent(_THIS, SDL_Window *window, SDL_GLContext context);
+ 
+-#endif /* SDL_VIDEO_DRIVER_EMSCRIPTEN && SDL_VIDEO_OPENGL_EGL */
++#endif /* SDL_VIDEO_DRIVER_EMSCRIPTEN && SDL_VIDEO_OPENGL_ES2 */
+ 
+ #endif /* SDL_emscriptenopengles_h_ */
+ 
+diff --color -ruN a/src/video/emscripten/SDL_emscriptenvideo.c b/src/video/emscripten/SDL_emscriptenvideo.c
+--- a/src/video/emscripten/SDL_emscriptenvideo.c	2026-10-14 17:03:25
++++ b/src/video/emscripten/SDL_emscriptenvideo.c	2026-10-14 17:03:55
+@@ -106,7 +106,7 @@
+     device->UpdateWindowFramebuffer = Emscripten_UpdateWindowFramebuffer;
+     device->DestroyWindowFramebuffer = Emscripten_DestroyWindowFramebuffer;
+ 
+-#ifdef SDL_VIDEO_OPENGL_EGL
++#ifdef SDL_VIDEO_OPENGL_ES2
+     device->GL_LoadLibrary = Emscripten_GLES_LoadLibrary;
+     device->GL_GetProcAddress = Emscripten_GLES_GetProcAddress;
+     device->GL_UnloadLibrary = Emscripten_GLES_UnloadLibrary;
+diff --color -ruN a/src/video/emscripten/SDL_emscriptenvideo.h b/src/video/emscripten/SDL_emscriptenvideo.h
+--- a/src/video/emscripten/SDL_emscriptenvideo.h	2026-10-14 17:03:25
++++ b/src/video/emscripten/SDL_emscriptenvideo.h	2026-10-14 17:03:55
+@@ -28,12 +28,17 @@
+ #include <emscripten/emscripten.h>
+ #include <emscripten/html5.h>
+ 
++#include <emscripten/html5_webgl.h>
++
+ #ifdef SDL_VIDEO_OPENGL_EGL
+ #include <EGL/egl.h>
+ #endif
+ 
+ typedef struct SDL_WindowData
+ {
++#ifdef SDL_VIDEO_OPENGL_ES2
++    EMSCRIPTEN_WEBGL_CONTEXT_HANDLE gl_context;
++#endif
+ #ifdef SDL_VIDEO_OPENGL_EGL
+     EGLSurface egl_surface;
+ #endif

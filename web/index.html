@@ -1,0 +1,91 @@
+<!doctype html>
+<html lang="en">
+<head>
+	<meta charset="utf-8">
+	<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+	<meta name="color-scheme" content="dark">
+	<meta name="theme-color" content="#0b0907">
+	<title>Heroes III</title>
+	<link rel="icon" href="icon.svg" type="image/svg+xml">
+	<link rel="manifest" href="manifest.webmanifest">
+	<link rel="stylesheet" href="style.css">
+</head>
+<body>
+	<!-- SDL renders here. The id must stay "canvas": the game worker takes it over as an OffscreenCanvas -->
+	<canvas id="canvas" tabindex="0" aria-label="Heroes of Might and Magic III"></canvas>
+
+	<div id="overlay" class="overlay">
+		<main class="panel" aria-live="polite">
+			<header class="brand">
+				<h1>Heroes <span>of</span> Might <span>and</span> Magic III</h1>
+				<p class="subtitle">Complete Edition &middot; in your browser, powered by VCMI</p>
+			</header>
+
+			<!-- Unsupported browser -->
+			<section id="screen-unsupported" class="screen" hidden>
+				<h2>This browser can't run the game</h2>
+				<p>Missing features:</p>
+				<ul id="unsupported-list" class="checklist bad"></ul>
+				<p class="hint">Use a current version of Chrome, Edge, Helium, Firefox or Safari (17 or newer).</p>
+			</section>
+
+			<!-- Main launcher -->
+			<section id="screen-launcher" class="screen" hidden>
+				<ul class="checklist" id="data-status"></ul>
+				<div class="actions">
+					<button id="play" class="primary" type="button">Play</button>
+					<button id="manage" class="secondary" type="button">Manage game files</button>
+				</div>
+				<p class="hint" id="storage-info"></p>
+			</section>
+
+			<!-- Game data import -->
+			<section id="screen-import" class="screen" hidden>
+				<h2>Add your Heroes III files</h2>
+				<p>
+					Choose the folder where Heroes of Might and Magic III Complete is installed
+					(for GOG: <code>C:\GOG Games\HoMM 3 Complete</code>). The files are copied into this
+					browser's private storage and never leave your computer.
+				</p>
+				<label id="dropzone" class="dropzone" for="folder-input">
+					<input id="folder-input" type="file" webkitdirectory multiple hidden>
+					<strong>Choose game folder</strong>
+					<span>or drop it here</span>
+				</label>
+				<label class="option"><input id="include-video" type="checkbox"> Also copy cutscene videos (about 630 MB)</label>
+				<div id="import-progress" class="progress" hidden>
+					<div class="bar"><div id="import-bar"></div></div>
+					<p id="import-label" class="hint"></p>
+				</div>
+				<p id="import-error" class="error" hidden></p>
+				<div class="actions">
+					<button id="import-back" class="secondary" type="button" hidden>Back</button>
+					<button id="clear-data" class="danger" type="button" hidden>Remove game files</button>
+				</div>
+			</section>
+
+			<!-- Loading -->
+			<section id="screen-loading" class="screen" hidden>
+				<div class="spinner" aria-hidden="true"></div>
+				<p id="loading-label">Loading&hellip;</p>
+			</section>
+
+			<!-- Game ended or crashed -->
+			<section id="screen-ended" class="screen" hidden>
+				<h2 id="ended-title">Thanks for playing</h2>
+				<p id="ended-message"></p>
+				<pre id="ended-log" class="log" hidden></pre>
+				<div class="actions">
+					<button id="restart" class="primary" type="button">Back to launcher</button>
+				</div>
+			</section>
+		</main>
+	</div>
+
+	<button id="fullscreen" class="corner-button" type="button" title="Toggle fullscreen (F11)" hidden>
+		<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 9V4h5M20 9V4h-5M4 15v5h5M20 15v5h-5"/></svg>
+	</button>
+
+	<script type="module" src="app.js"></script>
+</body>
+</html>
