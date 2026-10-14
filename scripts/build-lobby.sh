@@ -36,6 +36,7 @@ cmake -S "$ROOT/vcmi" -B "$BUILD" -G Ninja \
 	-DENABLE_BATTLE_AI=OFF \
 	-DENABLE_MMAI=OFF \
 	-DENABLE_MONOLITHIC_INSTALL=ON \
+	-DENABLE_STATIC_LIBS=ON \
 	"${EXTRA[@]}" >/dev/null
 
 cmake --build "$BUILD" --target vcmilobby

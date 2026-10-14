@@ -1,0 +1,16 @@
+[Unit]
+Description=VCMI lobby server for Heroes III in the browser
+After=network.target
+
+[Service]
+User=homm3
+Group=homm3
+Environment=HOME=/var/lib/homm3 XDG_DATA_HOME=/var/lib/homm3/data XDG_CACHE_HOME=/var/lib/homm3/cache XDG_CONFIG_HOME=/var/lib/homm3/config
+# vcmilobby finds VCMI's config through its working directory (see install-linux.sh)
+WorkingDirectory=/var/lib/homm3/lobby
+ExecStart=/var/lib/homm3/lobby/vcmilobby
+Restart=always
+RestartSec=2
+
+[Install]
+WantedBy=multi-user.target

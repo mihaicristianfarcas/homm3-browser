@@ -37,7 +37,7 @@ const name = args.browser ?? 'helium';
 const controlPort = Number(args.port ?? 9400);
 const url = args.url ?? 'http://localhost:8642/';
 const shotsDir = path.join(root, 'build', 'shots');
-const profileDir = path.join(root, 'build', 'profiles', name);
+const profileDir = path.join(root, 'build', 'profiles', args.profile ?? name);
 fs.mkdirSync(shotsDir, { recursive: true });
 fs.mkdirSync(profileDir, { recursive: true });
 
@@ -162,6 +162,12 @@ const routes = {
 		const { windowId } = await session.send('Browser.getWindowForTarget');
 		await session.send('Browser.setWindowBounds', { windowId, bounds: { width: Number(q.get('w')), height: Number(q.get('h')), windowState: 'normal' } });
 		await session.detach();
+		return { ok: true };
+	},
+	async chooseFolder(q) {
+		// opens the page's folder picker (by clicking the selector) and picks a local directory
+		const [chooser] = await Promise.all([page.waitForFileChooser(), page.click(q.get('selector'))]);
+		await chooser.accept([q.get('path')]);
 		return { ok: true };
 	},
 	async goto(q) {

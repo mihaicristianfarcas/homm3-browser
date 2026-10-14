@@ -1,0 +1,15 @@
+[Unit]
+Description=Web server and lobby bridge for Heroes III in the browser
+After=network.target homm3-lobby.service
+
+[Service]
+User=homm3
+Group=homm3
+Environment=PORT=8642 HOST=127.0.0.1 WEB_ROOT=/opt/homm3-browser/dist
+EnvironmentFile=-/etc/default/homm3-web
+ExecStart=/usr/bin/node /opt/homm3-browser/server/server.mjs
+Restart=always
+RestartSec=2
+
+[Install]
+WantedBy=multi-user.target
