@@ -30,7 +30,13 @@ services:
       GAMEDATA_DIR: ${HOMM3_DIR:+/gamedata}
       GAMEDATA_KEY: ${GAMEDATA_KEY:-}
     volumes:
-      - ${HOMM3_DIR:-./gamedata}:/gamedata:ro
+      # long syntax: Windows paths contain a colon (C:/GOG Games/...)
+      - type: bind
+        source: ${HOMM3_DIR:-./gamedata}
+        target: /gamedata
+        read_only: true
+        bind:
+          create_host_path: true
 
   # Temporary public link (https://<random>.trycloudflare.com), no Cloudflare account needed.
   # The address is printed in the log: docker compose logs quick-tunnel
