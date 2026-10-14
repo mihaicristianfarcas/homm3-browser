@@ -220,6 +220,10 @@ set(PACKAGE_NAME_SUFFIX "" CACHE STRING "Suffix for CPack package name")
 set(PACKAGE_FILE_NAME "" CACHE STRING "Override for CPack package filename")
 
 set(CMAKE_MODULE_PATH ${CMAKE_HOME_DIRECTORY}/cmake_modules ${PROJECT_SOURCE_DIR}/CI)
+if(EMSCRIPTEN)
+	# Browser build: dependencies come from Emscripten ports or from scripts/build-deps.sh
+	list(PREPEND CMAKE_MODULE_PATH ${CMAKE_HOME_DIRECTORY}/cmake_modules/emscripten)
+endif()
 # Contains custom functions and macros, but don't altering any options
 
 include(VCMIUtils)

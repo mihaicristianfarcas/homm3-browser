@@ -114,12 +114,15 @@ void GameEngine::fakeMouseMove()
 [[noreturn]] void GameEngine::mainLoop()
 {
 	for (;;)
-	{
-		input().fetchEvents();
-		updateFrame();
-		screenHandlerInstance->presentScreenTexture();
-		framerate().framerateDelay(); // holds a constant FPS
-	}
+		runFrame();
+}
+
+void GameEngine::runFrame()
+{
+	input().fetchEvents();
+	updateFrame();
+	screenHandlerInstance->presentScreenTexture();
+	framerate().framerateDelay(); // holds a constant FPS
 }
 
 void GameEngine::updateFrame()

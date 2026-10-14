@@ -184,8 +184,8 @@ INetworkHandler & CServerHandler::getNetworkHandler()
 void CServerHandler::startLocalServerAndConnect(bool connectToLobby)
 {
 	logNetwork->trace("\tLocal server startup has been requested");
-#ifdef VCMI_MOBILE
-	// mobile apps can't spawn separate processes - only thread mode is available
+#ifndef ENABLE_SERVER_PROCESS
+	// mobile apps and browsers can't spawn separate processes - only thread mode is available
 	serverRunner.reset(new ServerThreadRunner());
 #else
 	if (settings["server"]["useProcess"].Bool())

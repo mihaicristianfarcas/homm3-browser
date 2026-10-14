@@ -53,6 +53,9 @@ static_assert(sizeof(bool) == 1, "Bool needs to be 1 byte in size.");
 #  define VCMI_UNIX
 #  define VCMI_XDG
 #  define VCMI_HURD
+#elif defined(__EMSCRIPTEN__)
+#  define VCMI_UNIX
+#  define VCMI_EMSCRIPTEN
 #elif defined(__APPLE__) && defined(__MACH__)
 #  define VCMI_UNIX
 #  define VCMI_APPLE

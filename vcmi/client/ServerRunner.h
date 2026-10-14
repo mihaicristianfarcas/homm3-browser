@@ -52,8 +52,8 @@ public:
 	~ServerThreadRunner();
 };
 
-#ifndef VCMI_MOBILE
-// Enable support for running vcmiserver as separate process. Unavailable on mobile systems
+#if !defined(VCMI_MOBILE) && !defined(VCMI_EMSCRIPTEN)
+// Enable support for running vcmiserver as separate process. Unavailable on mobile systems and in browsers
 #define ENABLE_SERVER_PROCESS
 #endif
 

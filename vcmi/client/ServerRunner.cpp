@@ -78,6 +78,20 @@ int ServerThreadRunner::exitCode()
 
 void ServerThreadRunner::connect(INetworkHandler & network, INetworkClientListener & listener)
 {
+#ifdef VCMI_EMSCRIPTEN
+	// Browsers have no TCP loopback, so the local client always uses an in-process connection.
+	// When hosting through the global lobby, the server only becomes connectable after logging into the lobby.
+	if (!server->isNetworkServerReady())
+	{
+		boost::asio::post(network.getContext(), [&listener](){
+			listener.onConnectionFailed("Local server is not ready yet");
+		});
+		return;
+	}
+	network.createInternalConnection(listener, server->getNetworkServer());
+	return;
+#endif
+
 	if (lobbyMode)
 	{
 		std::string host = settings["server"]["localHostname"].String();

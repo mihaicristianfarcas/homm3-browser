@@ -42,6 +42,8 @@ class CVCMIServer : public LobbyInfo, public INetworkServerListener, public INet
 	std::unique_ptr<INetworkHandler> networkHandler;
 	/// Network server instance that receives and processes incoming connections on active socket
 	std::unique_ptr<INetworkServer> networkServer;
+	/// Set once networkServer has been created, may be checked from other threads
+	std::atomic<bool> networkServerReady = false;
 
 	/// Handles connection with global lobby. Must be constructed and destroyed after network handler
 	std::unique_ptr<GlobalLobbyProcessor> lobbyProcessor;
@@ -122,6 +124,7 @@ public:
 
 	INetworkHandler & getNetworkHandler();
 	INetworkServer & getNetworkServer();
+	bool isNetworkServerReady() const;
 
 	// Work with LobbyInfo
 	void setPlayer(PlayerColor clickedColor);

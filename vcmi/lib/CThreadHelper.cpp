@@ -14,6 +14,8 @@
 	#include <windows.h>
 #elif defined(VCMI_HAIKU)
 	#include <OS.h>
+#elif defined(VCMI_EMSCRIPTEN)
+	#include <emscripten/threading.h>
 #elif !defined(VCMI_APPLE) && !defined(VCMI_FREEBSD) && \
 	!defined(VCMI_HURD) && !defined(VCMI_OPENBSD)
 	#include <sys/prctl.h>
@@ -85,6 +87,8 @@ void setThreadName(const std::string &name)
 //not supported
 #endif
 
+#elif defined(VCMI_EMSCRIPTEN)
+	emscripten_set_thread_name(pthread_self(), name.c_str());
 #elif defined(VCMI_APPLE)
 	pthread_setname_np(name.c_str());
 #elif defined(VCMI_FREEBSD)

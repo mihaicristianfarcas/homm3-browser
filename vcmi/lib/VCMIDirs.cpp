@@ -232,6 +232,31 @@ bfs::path IVCMIDirsUNIX::clientPath() const { return binaryPath() / "vcmiclient"
 bfs::path IVCMIDirsUNIX::mapEditorPath() const { return binaryPath() / "vcmieditor"; }
 bfs::path IVCMIDirsUNIX::serverPath() const { return binaryPath() / "vcmiserver"; }
 
+#ifdef VCMI_EMSCRIPTEN
+/// Browser build. File systems are mounted at startup by the client (see clientapp/WebPlatform.cpp):
+/// - /vcmi      : VCMI's own data (config, built-in mod), bundled with the application
+/// - /opfs/h3   : original Heroes III data imported by the player, in the origin-private file system
+/// - /opfs/user : persistent user data (saves, settings, mods), in the origin-private file system
+/// - /tmp       : in-memory cache and logs, lost on page reload
+class VCMIDirsEmscripten final : public IVCMIDirsUNIX
+{
+public:
+	bfs::path userDataPath() const override { return "/opfs/user/data"; }
+	bfs::path userCachePath() const override { return "/tmp/cache"; }
+	bfs::path userConfigPath() const override { return "/opfs/user/config"; }
+	bfs::path userLogsPath() const override { return "/tmp/logs"; }
+
+	std::vector<bfs::path> dataPaths() const override { return { "/vcmi", "/opfs/h3" }; }
+
+	bfs::path libraryPath() const override { return "/vcmi"; }
+	bfs::path binaryPath() const override { return "/vcmi"; }
+
+	std::string libraryName(const std::string & basename) const override { return basename; }
+
+	bool developmentMode() const override { return false; }
+};
+#endif
+
 #ifdef VCMI_APPLE
 class VCMIDirsApple : public IVCMIDirsUNIX
 {
@@ -641,6 +666,8 @@ namespace VCMIDirs
 	{
 		#ifdef VCMI_WINDOWS
 			static VCMIDirsWIN32 singleton;
+		#elif defined(VCMI_EMSCRIPTEN)
+			static VCMIDirsEmscripten singleton;
 		#elif defined(VCMI_ANDROID)
 			static VCMIDirsAndroid singleton;
 		#elif defined(VCMI_PORTMASTER)

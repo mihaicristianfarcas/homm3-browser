@@ -30,6 +30,7 @@ set(lib_SRCS
 	network/NetworkConnection.cpp
 	network/NetworkDiscovery.cpp
 	network/NetworkHandler.cpp
+	network/WebNetworkHandler.cpp
 	network/NetworkServer.cpp
 
 	texts/TextOperations.cpp
@@ -393,6 +394,7 @@ set(lib_HEADERS
 	network/NetworkDefines.h
 	network/NetworkDiscovery.h
 	network/NetworkHandler.h
+	network/WebNetworkHandler.h
 	network/NetworkInterface.h
 	network/NetworkServer.h
 

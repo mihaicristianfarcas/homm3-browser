@@ -39,6 +39,42 @@ endif()
 
 target_link_libraries(vcmiclient PRIVATE vcmiclientcommon)
 
+if(EMSCRIPTEN)
+	target_sources(vcmiclient PRIVATE WebPlatform.cpp WebPlatform.h)
+
+	set(VCMI_WEB_JS_LIBRARY "${CMAKE_CURRENT_SOURCE_DIR}/web/library_vcmi.js")
+	set_property(TARGET vcmiclient APPEND PROPERTY LINK_DEPENDS "${VCMI_WEB_JS_LIBRARY}")
+
+	target_link_options(vcmiclient PRIVATE
+		# Game runs in a worker so it may block freely, the browser main thread only handles
+		# DOM events, audio and WebSockets. Rendering goes to an OffscreenCanvas owned by the worker.
+		"-sPROXY_TO_PTHREAD=1"
+		"-sOFFSCREENCANVAS_SUPPORT=1"
+		"-sPTHREAD_POOL_SIZE=navigator.hardwareConcurrency+12"
+		"-sPTHREAD_POOL_SIZE_STRICT=0"
+		"-sSTACK_SIZE=8MB"
+		"-sDEFAULT_PTHREAD_STACK_SIZE=4MB"
+
+		"-sMALLOC=mimalloc"
+		"-sALLOW_MEMORY_GROWTH=1"
+		"-sINITIAL_MEMORY=512MB"
+		"-sMAXIMUM_MEMORY=4GB"
+
+		"-sWASMFS=1"
+		"-sEXIT_RUNTIME=0"
+		"-sENVIRONMENT=web,worker"
+		"-sMODULARIZE=1"
+		"-sEXPORT_NAME=createVcmiModule"
+		"-sEXPORTED_RUNTIME_METHODS=['HEAPU8']"
+		"--profiling-funcs"
+		"--js-library=${VCMI_WEB_JS_LIBRARY}"
+
+		# VCMI's own data files, bundled as vcmiclient.data
+		"--preload-file=${CMAKE_SOURCE_DIR}/config@/vcmi/config"
+		"--preload-file=${CMAKE_SOURCE_DIR}/Mods@/vcmi/Mods"
+	)
+endif()
+
 if(ENABLE_SINGLE_APP_BUILD AND ENABLE_LAUNCHER)
 	target_link_libraries(vcmiclient PRIVATE vcmilauncher)
 endif()

@@ -53,6 +53,10 @@
 #include <SDL_system.h>
 #endif
 
+#ifdef VCMI_EMSCRIPTEN
+#include "WebPlatform.h"
+#endif
+
 #if __MINGW32__
 #undef main
 #endif
@@ -130,9 +134,12 @@ int main(int argc, char * argv[])
 	setenv("LANG", "C", 1);
 #endif
 
-#if !defined(VCMI_MOBILE)
+#if !defined(VCMI_MOBILE) && !defined(VCMI_EMSCRIPTEN)
 	// Correct working dir executable folder (not bundle folder) so we can use executable relative paths
 	boost::filesystem::current_path(boost::filesystem::system_complete(argv[0]).parent_path());
+#endif
+#ifdef VCMI_EMSCRIPTEN
+	WebPlatform::mountFilesystems();
 #endif
 	std::cout << "Starting... " << std::endl;
 	po::options_description opts("Allowed options");
@@ -211,10 +218,17 @@ int main(int argc, char * argv[])
 		commandController.processCommand(buffer, calledFromIngameConsole);
 	};
 
+#ifdef VCMI_EMSCRIPTEN
+	// main() returns while the game keeps running from browser frame callbacks, so these must outlive it.
+	// There is no stdin in browsers, so the console thread is not started
+	static CConsoleHandler console(callbackFunction);
+	static CBasicLogConfigurator logConfigurator(logPath, &console);
+#else
 	CConsoleHandler console(callbackFunction);
 	console.start();
 
 	CBasicLogConfigurator logConfigurator(logPath, &console);
+#endif
 #else
 	CBasicLogConfigurator logConfigurator(logPath, nullptr);
 #endif
@@ -404,7 +418,7 @@ int main(int argc, char * argv[])
 			}
 		};
 
-		const auto & cleanupEngine = [&logConfigurator]()
+		const auto & cleanupEngine = [&]()
 		{
 			GAME->server().endNetwork();
 
@@ -438,8 +452,17 @@ int main(int argc, char * argv[])
 			std::cout << "Ending...\n";
 		};
 
+#ifdef VCMI_EMSCRIPTEN
+		// Browsers drive the frame loop: each frame runs from requestAnimationFrame and returns to the event loop
+		(void)runMainLoop;
+		(void)cleanupEngine;
+		if (ENGINE)
+			checkForModLoadingFailure();
+		WebPlatform::startMainLoop([](){ ENGINE->runFrame(); });
+#else
 		auto onExit = vstd::makeScopeGuard(cleanupEngine);
 		runMainLoop();
+#endif
 	}
 	catch (const GameShutdownException &)
 	{
@@ -457,7 +480,12 @@ void handleFatalError(const std::string & message, bool terminate)
 
 	std::string messageToShow = "Fatal error! " + message;
 
+#ifdef VCMI_EMSCRIPTEN
+	// shown by the hosting web page
+	WebPlatform::notify("fatal", message);
+#else
 	SDL_ShowSimpleMessageBox(SDL_MESSAGEBOX_ERROR, "Fatal error!", messageToShow.c_str(), nullptr);
+#endif
 
 	if (terminate)
 		throw std::runtime_error(message);

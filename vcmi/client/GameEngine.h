@@ -125,6 +125,10 @@ public:
 	/// This method never returns, to abort main loop throw GameShutdownException
 	[[noreturn]] void mainLoop();
 
+	/// Performs single iteration of main game loop: input, update, render and frame pacing
+	/// Used directly on platforms where the system drives the frame loop (e.g. browsers)
+	void runFrame();
+
 	/// called whenever SDL_WINDOWEVENT_RESTORED is reported or the user selects a different resolution, requiring to center/resize all windows
 	void onScreenResize(bool resolutionChanged, bool windowResized);
 

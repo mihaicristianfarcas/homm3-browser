@@ -28,7 +28,14 @@ void FramerateManager::framerateDelay()
 {
 	Duration timeSpentBusy = Clock::now() - lastTimePoint;
 
-	if(!vsyncEnabled && timeSpentBusy < targetFrameTime)
+#ifdef VCMI_EMSCRIPTEN
+	// browsers pace frames themselves with requestAnimationFrame
+	constexpr bool externalFramePacing = true;
+#else
+	constexpr bool externalFramePacing = false;
+#endif
+
+	if(!externalFramePacing && !vsyncEnabled && timeSpentBusy < targetFrameTime)
 	{
 		// if FPS is higher than it should be, then wait some time
 		std::this_thread::sleep_for(targetFrameTime - timeSpentBusy);

@@ -13,12 +13,17 @@
 #include "NetworkServer.h"
 #include "NetworkConnection.h"
 #include "NetworkDiscovery.h"
+#include "WebNetworkHandler.h"
 
 VCMI_LIB_NAMESPACE_BEGIN
 
 std::unique_ptr<INetworkHandler> INetworkHandler::createHandler()
 {
+#ifdef VCMI_EMSCRIPTEN
+	return std::make_unique<WebNetworkHandler>();
+#else
 	return std::make_unique<NetworkHandler>();
+#endif
 }
 
 NetworkHandler::NetworkHandler()

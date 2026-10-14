@@ -104,6 +104,7 @@ uint16_t CVCMIServer::prepare(bool connectToLobby, bool listenForConnections) {
 uint16_t CVCMIServer::startAcceptingIncomingConnections(bool listenForConnections)
 {
 	networkServer = networkHandler->createServerTCP(*this);
+	networkServerReady = true;
 
 	port
 		? logNetwork->info("Port %d will be used", port)
@@ -1176,6 +1177,11 @@ INetworkHandler & CVCMIServer::getNetworkHandler()
 INetworkServer & CVCMIServer::getNetworkServer()
 {
 	return *networkServer;
+}
+
+bool CVCMIServer::isNetworkServerReady() const
+{
+	return networkServerReady;
 }
 
 bool CVCMIServer::loadSavedGame(CGameHandler & handler, const StartInfo & info)
