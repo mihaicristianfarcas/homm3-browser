@@ -1,6 +1,9 @@
 #!/usr/bin/env bash
-# Offers Heroes III game files from this server, so invited players don't need their own installation.
-# Run as root after install-linux.sh:   bundle-gamedata.sh "/mnt/c/GOG Games/HoMM 3 Complete"
+# Offers Heroes III game files from this server, so invited players don't need their own installation
+# (they still need to own the game). Run as root after install-linux.sh, with the game folder:
+#   sudo /opt/homm3-browser/deploy/bundle-gamedata.sh "/home/me/HoMM 3 Complete"
+#   sudo /opt/homm3-browser/deploy/bundle-gamedata.sh "/mnt/c/GOG Games/HoMM 3 Complete"     (WSL)
+# Run it again after changing the game files, e.g. to add maps.
 #
 # - copies Data (archives and sounds, no videos), Maps and Mp3 into /var/lib/homm3/gamedata
 # - creates an access key once (kept across deployments) and configures the web server with it
@@ -50,4 +53,6 @@ chmod 640 "$DEFAULTS"
 systemctl restart homm3-web.service
 sleep 2
 systemctl is-active --quiet homm3-web.service
-echo "GAMEDATA_KEY=$(grep '^GAMEDATA_KEY=' "$DEFAULTS" | cut -d= -f2)"
+key="$(grep '^GAMEDATA_KEY=' "$DEFAULTS" | cut -d= -f2)"
+echo "GAMEDATA_KEY=$key"
+echo "Invite link: your game address followed by /?key=$key"

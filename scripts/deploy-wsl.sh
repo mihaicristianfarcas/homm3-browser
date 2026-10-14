@@ -1,8 +1,10 @@
 #!/usr/bin/env bash
-# Deploys the game to a Windows machine running WSL (Ubuntu) and Tailscale, over SSH.
-#   scripts/deploy-wsl.sh [ssh-target]      (default user@windows-pc)
-#   GAMEDATA_SOURCE="C:\GOG Games\HoMM 3 Complete"  Windows folder with the game, offered to invited
-#                                                  players for download (set to empty to disable)
+# Deploys the game from this computer to a Windows PC running WSL (Ubuntu) and Tailscale, over SSH.
+#   scripts/deploy-wsl.sh user@windows-pc
+#   GAMEDATA_SOURCE="C:\GOG Games\HoMM 3 Complete" scripts/deploy-wsl.sh user@windows-pc
+#       also offers the game files in that Windows folder to invited players (needed once, and
+#       again after changing them; later deployments keep offering them)
+# Needs OpenSSH Server on the Windows PC with PowerShell as its shell, WSL with Ubuntu, and Tailscale.
 #
 # - builds dist/ (web app) if needed and ships it with the server and lobby sources
 # - installs everything inside WSL as systemd services (deploy/install-linux.sh)
@@ -12,9 +14,9 @@
 set -euo pipefail
 
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
-TARGET="${1:-user@windows-pc}"
-DISTRO=Ubuntu
-GAMEDATA_SOURCE="${GAMEDATA_SOURCE-C:\GOG Games\HoMM 3 Complete}"
+TARGET="${1:?usage: scripts/deploy-wsl.sh user@windows-pc}"
+DISTRO="${WSL_DISTRO:-Ubuntu}"
+GAMEDATA_SOURCE="${GAMEDATA_SOURCE:-}"
 BUNDLE="$ROOT/build/homm3-deploy.tar.gz"
 
 [[ -f "$ROOT/dist/vcmiclient.wasm" ]] || node "$ROOT/scripts/package-web.mjs"
@@ -56,9 +58,14 @@ if [[ -n "$GAMEDATA_SOURCE" ]]; then
 	# C:\GOG Games\... -> /mnt/c/GOG Games/...
 	drive="$(echo "${GAMEDATA_SOURCE:0:1}" | tr '[:upper:]' '[:lower:]')"
 	wsl_source="/mnt/$drive$(echo "${GAMEDATA_SOURCE:2}" | tr '\\' '/')"
-	key="$(ssh "$TARGET" "wsl -d $DISTRO -u root -- bash /opt/homm3-browser/deploy/bundle-gamedata.sh '$wsl_source'" | tr -d '\r\000' | tee /dev/stderr | sed -n 's/^GAMEDATA_KEY=//p')"
-	host="$(ssh "$TARGET" '(& "C:\Program Files\Tailscale\tailscale.exe" status --json | ConvertFrom-Json).Self.DNSName' | tr -d '\r' | sed 's/\.$//')"
-	echo
+	ssh "$TARGET" "wsl -d $DISTRO -u root -- bash /opt/homm3-browser/deploy/bundle-gamedata.sh '$wsl_source'" | tr -d '\r\000'
+fi
+
+host="$(ssh "$TARGET" '(& "C:\Program Files\Tailscale\tailscale.exe" status --json | ConvertFrom-Json).Self.DNSName' | tr -d '\r' | sed 's/\.$//')"
+key="$(ssh "$TARGET" "wsl -d $DISTRO -u root -- sed -n 's/^GAMEDATA_KEY=//p' /etc/default/homm3-web" 2>/dev/null | tr -d '\r\000' || true)"
+echo
+echo "The game is at https://$host (for devices in your tailnet)"
+if [[ -n "$key" ]]; then
 	echo "Invite link for players (downloads the game on first visit):"
 	echo "  https://$host/?key=$key"
 fi

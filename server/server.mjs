@@ -316,4 +316,8 @@ server.listen(PORT, HOST, () => {
 	log(`Serving ${WEB_ROOT} on http://${HOST}:${PORT}`);
 	for (const [name, target] of NET_TARGETS)
 		log(`Bridging ws://…/net/${name.replace(':', '/')} to ${target.host}:${target.port}`);
+	if (gameData && GAMEDATA_KEY)
+		log(`Invite link: your game address followed by /?key=${GAMEDATA_KEY}`);
+	else if (gameData)
+		log('Warning: anyone who can open this server can download the game files. Set GAMEDATA_KEY to require an invite link');
 });
