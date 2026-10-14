@@ -119,6 +119,8 @@ const browser = await puppeteer.launch({
 const page = (await browser.pages())[0] ?? await browser.newPage();
 
 page.on('console', (msg) => record(`[${msg.type()}] ${msg.text()}`));
+// the launcher asks before leaving a running game - tests navigate away on purpose
+page.on('dialog', (dialog) => dialog.accept());
 page.on('pageerror', (err) => record(`[pageerror] ${err.message}`));
 page.on('requestfailed', (req) => record(`[requestfailed] ${req.url()} ${req.failure()?.errorText}`));
 

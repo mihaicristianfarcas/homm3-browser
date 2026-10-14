@@ -348,7 +348,26 @@ function endGame(title, message, showLog = false) {
 	showScreen('ended');
 }
 
+/// Game files in browser storage can only be opened by one tab at a time
+function acquireGameLock() {
+	if (!navigator.locks)
+		return Promise.resolve(true);
+	return new Promise((resolve) => {
+		navigator.locks.request('homm3-game', { ifAvailable: true }, (lock) => {
+			resolve(Boolean(lock));
+			// held until the page closes
+			return lock ? new Promise(() => {}) : undefined;
+		});
+	});
+}
+
 async function startGame() {
+	if (!(await acquireGameLock())) {
+		endGame('The game is already open', 'Heroes III is already running in another tab or window of this browser. Close it first, or continue playing there.');
+		$('restart').textContent = 'Try again';
+		return;
+	}
+
 	showScreen('loading');
 	$('loading-label').textContent = 'Loading game engine…';
 
@@ -398,6 +417,17 @@ function browserKeepsKey(event) {
 	if (mod && ['r', 'q', 'w', 't', 'n'].includes(event.key.toLowerCase()))
 		return true; // reload, quit, tabs and windows
 	return false;
+}
+
+/// Heroes III is pixel art: on screens with a whole-number pixel ratio, scale it without blurring
+function setupPixelScaling() {
+	const canvas = $('canvas');
+	const update = () => {
+		const ratio = window.devicePixelRatio;
+		canvas.style.imageRendering = ratio > 1 && Number.isInteger(ratio) ? 'pixelated' : 'auto';
+		matchMedia(`(resolution: ${ratio}dppx)`).addEventListener('change', update, { once: true });
+	};
+	update();
 }
 
 function setupInput() {
@@ -464,6 +494,7 @@ async function main() {
 
 	setupImport();
 	setupInput();
+	setupPixelScaling();
 	$('play').addEventListener('click', startGame);
 	$('restart').addEventListener('click', () => location.reload());
 
