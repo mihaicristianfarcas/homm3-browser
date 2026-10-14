@@ -24,8 +24,9 @@ namespace WebPlatform
 	void notify(const std::string & event, const std::string & detail = {});
 
 	/// Starts running the game loop from the browser's frame callbacks and returns immediately.
-	/// The callback is invoked once per frame until it throws GameShutdownException
-	void startMainLoop(std::function<void()> frame);
+	/// The frame callback is invoked once per frame until it throws GameShutdownException,
+	/// then the shutdown callback releases the engine
+	void startMainLoop(std::function<void()> frame, std::function<void()> shutdown);
 }
 
 #endif

@@ -20,6 +20,7 @@
 
 // Implemented in clientapp/web/library_vcmi.js
 extern "C" void vcmi_web_notify(char * event, char * detail);
+extern "C" void vcmi_web_detach_input();
 
 EM_JS_DEPS(vcmi_web_platform, "$stringToNewUTF8,$UTF8ToString");
 
@@ -85,6 +86,15 @@ void notify(const std::string & event, const std::string & detail)
 }
 
 static std::function<void()> frameCallback;
+static std::function<void()> shutdownCallback;
+
+/// Stops the frame loop. The game thread ends once it returns to its event loop, so the page
+/// must stop forwarding input to it: events proxied to a finished thread abort the program
+static void endMainLoop()
+{
+	emscripten_cancel_main_loop();
+	vcmi_web_detach_input();
+}
 
 static void runFrame()
 {
@@ -98,19 +108,28 @@ static void runFrame()
 	}
 	catch (const GameShutdownException &)
 	{
-		emscripten_cancel_main_loop();
+		endMainLoop();
+		try
+		{
+			shutdownCallback();
+		}
+		catch (const std::exception & e)
+		{
+			logGlobal->error("Shutdown failed: %s", e.what());
+		}
 		notify("exit");
 	}
 	catch (const std::exception & e)
 	{
-		emscripten_cancel_main_loop();
+		endMainLoop();
 		notify("fatal", e.what());
 	}
 }
 
-void startMainLoop(std::function<void()> frame)
+void startMainLoop(std::function<void()> frame, std::function<void()> shutdown)
 {
 	frameCallback = std::move(frame);
+	shutdownCallback = std::move(shutdown);
 	notify("running");
 	// fps = 0: driven by requestAnimationFrame. Does not simulate an infinite loop -
 	// the caller returns normally and the worker keeps running from its event loop.

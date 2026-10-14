@@ -27,6 +27,7 @@ let config = {}; // deployment settings from the server (config.json)
 let gameDataKey = null; // access key for the server's game data, from the invite link
 let game = null; // Emscripten module once started
 let gameRunning = false;
+let gameStopped = false; // quit, crashed or failed to start
 const recentLog = [];
 
 // ------------------------------------------------------------------------------------------
@@ -461,12 +462,23 @@ function onGameEvent(event, detail) {
 			$('canvas').focus();
 			break;
 		case 'exit':
-			endGame('Thanks for playing', '');
+			stopGame('Thanks for playing', '');
 			break;
 		case 'fatal':
-			endGame('The game stopped because of an error', detail, true);
+			stopGame('The game stopped because of an error', detail, true);
 			break;
 	}
+}
+
+/// Shows why the game stopped. Only the first report counts: a stopped game can cause
+/// follow-up errors (e.g. from its remaining threads) that would hide the actual reason
+function stopGame(title, message, showLog = false) {
+	if (gameStopped)
+		return;
+	gameStopped = true;
+	// a crashed game can't close its audio itself
+	game?.SDL2?.audioContext?.close().catch(() => {});
+	endGame(title, message, showLog);
 }
 
 function endGame(title, message, showLog = false) {
@@ -527,11 +539,11 @@ async function startGame() {
 				if (params.get('audio') === 'off')
 					module.ENV.SDL_AUDIODRIVER = 'dummy';
 			}],
-			onAbort: (reason) => endGame('The game stopped because of an error', String(reason ?? ''), true),
+			onAbort: (reason) => stopGame('The game stopped because of an error', String(reason ?? ''), true),
 		});
 		$('loading-label').textContent = 'Starting VCMI…';
 	} catch (error) {
-		endGame('The game could not start', error?.message ?? String(error), true);
+		stopGame('The game could not start', error?.message ?? String(error), true);
 	}
 }
 

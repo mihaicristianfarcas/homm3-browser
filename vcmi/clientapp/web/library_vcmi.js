@@ -103,6 +103,12 @@ addToLibrary({
 	// ---------------------------------------------------------------------------------------
 	// Notifications for the web page hosting the game (see clientapp/WebPlatform.cpp)
 	// ---------------------------------------------------------------------------------------
+	// Removes the game's input and window event handlers from the page (registered through Emscripten's
+	// HTML5 API on the browser main thread), called when the game thread is about to finish
+	vcmi_web_detach_input__proxy: 'sync',
+	vcmi_web_detach_input__deps: ['$JSEvents'],
+	vcmi_web_detach_input: () => JSEvents.removeAllEventListeners(),
+
 	vcmi_web_notify__proxy: 'async',
 	vcmi_web_notify__deps: ['free'],
 	vcmi_web_notify: (eventPtr, detailPtr) => {

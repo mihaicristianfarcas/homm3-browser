@@ -457,12 +457,13 @@ int main(int argc, char * argv[])
 		};
 
 #ifdef VCMI_EMSCRIPTEN
-		// Browsers drive the frame loop: each frame runs from requestAnimationFrame and returns to the event loop
+		// Browsers drive the frame loop: each frame runs from requestAnimationFrame and returns to the event loop.
+		// The cleanup runs after main() has returned. That is safe because in this build it only refers to
+		// globals and static locals, which lambdas don't capture
 		(void)runMainLoop;
-		(void)cleanupEngine;
 		if (ENGINE)
 			checkForModLoadingFailure();
-		WebPlatform::startMainLoop([](){ ENGINE->runFrame(); });
+		WebPlatform::startMainLoop([](){ ENGINE->runFrame(); }, cleanupEngine);
 #else
 		auto onExit = vstd::makeScopeGuard(cleanupEngine);
 		runMainLoop();
