@@ -68,6 +68,10 @@ void applyPageSettings()
 	// escape sequences only clutter the browser console
 	Settings console = settings.write["logging"]["console"];
 	console["coloredOutputEnabled"].Bool() = false;
+
+	std::string logLevel = pageConfigString("logLevel");
+	if (!logLevel.empty())
+		console["threshold"].String() = logLevel;
 }
 
 void notify(const std::string & event, const std::string & detail)
@@ -80,6 +84,10 @@ static std::function<void()> frameCallback;
 
 static void runFrame()
 {
+	static uint64_t frameCounter = 0;
+	if (++frameCounter % 600 == 0)
+		logGlobal->trace("Browser frame %d", frameCounter);
+
 	try
 	{
 		frameCallback();

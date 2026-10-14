@@ -309,6 +309,9 @@ function loadScript(src) {
 	});
 }
 
+// recent game output, for diagnostics from devtools or test automation
+window.vcmiLog = recentLog;
+
 function log(text, isError) {
 	recentLog.push(text);
 	if (recentLog.length > 200)
@@ -352,6 +355,9 @@ async function startGame() {
 	try {
 		// deployment settings, such as the lobby server address. Optional
 		const config = await fetch('config.json').then((r) => (r.ok ? r.json() : {})).catch(() => ({}));
+		// ?debug: verbose game logging in the browser console
+		if (params.has('debug'))
+			config.logLevel = params.get('debug') || 'debug';
 
 		await loadScript('vcmiclient.js');
 		game = await createVcmiModule({
