@@ -13,12 +13,15 @@
 #ifdef VCMI_EMSCRIPTEN
 
 #include "../client/GameInstance.h"
+#include "../lib/CConfigHandler.h"
 
 #include <emscripten/emscripten.h>
 #include <emscripten/wasmfs.h>
 
 // Implemented in clientapp/web/library_vcmi.js
 extern "C" void vcmi_web_notify(char * event, char * detail);
+
+EM_JS_DEPS(vcmi_web_platform, "$stringToNewUTF8,$UTF8ToString");
 
 namespace WebPlatform
 {
@@ -32,6 +35,39 @@ void mountFilesystems()
 
 	for (const char * path : { "/opfs/h3", "/opfs/user", "/tmp" })
 		boost::filesystem::create_directories(path);
+}
+
+/// Reads a string from the page's game configuration (Module.vcmiConfig), empty if not set
+static std::string pageConfigString(const char * key)
+{
+	// the page configuration lives on the browser main thread
+	char * value = reinterpret_cast<char *>(MAIN_THREAD_EM_ASM_PTR({
+		const value = Module['vcmiConfig']?.[UTF8ToString($0)];
+		return value === undefined || value === null ? 0 : stringToNewUTF8(String(value));
+	}, key));
+
+	if (!value)
+		return {};
+	std::string result = value;
+	free(value);
+	return result;
+}
+
+void applyPageSettings()
+{
+	std::string lobbyHost = pageConfigString("lobbyHostname");
+	std::string lobbyPort = pageConfigString("lobbyPort");
+	if (!lobbyHost.empty())
+	{
+		Settings lobby = settings.write["lobby"];
+		lobby["hostname"].String() = lobbyHost;
+		if (!lobbyPort.empty())
+			lobby["port"].Integer() = std::stoi(lobbyPort);
+	}
+
+	// escape sequences only clutter the browser console
+	Settings console = settings.write["logging"]["console"];
+	console["coloredOutputEnabled"].Bool() = false;
 }
 
 void notify(const std::string & event, const std::string & detail)

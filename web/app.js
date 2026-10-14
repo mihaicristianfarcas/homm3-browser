@@ -350,8 +350,12 @@ async function startGame() {
 	$('loading-label').textContent = 'Loading game engine…';
 
 	try {
+		// deployment settings, such as the lobby server address. Optional
+		const config = await fetch('config.json').then((r) => (r.ok ? r.json() : {})).catch(() => ({}));
+
 		await loadScript('vcmiclient.js');
 		game = await createVcmiModule({
+			vcmiConfig: config,
 			canvas: $('canvas'),
 			mainScriptUrlOrBlob: new URL('vcmiclient.js', location.href).href,
 			print: (text) => log(text, false),
@@ -389,7 +393,14 @@ function setupInput() {
 	const canvas = $('canvas');
 
 	// The game receives key events through SDL in its worker, so they can't be cancelled there.
-	for (const type of ['keydown', 'keyup', 'keypress']) {
+	// Printable keys must not be cancelled on keydown: that suppresses the keypress event,
+	// which SDL turns into text input. Cancelling keypress still blocks e.g. Firefox's quick find.
+	const printable = (event) => event.key.length === 1 && !event.ctrlKey && !event.metaKey;
+	window.addEventListener('keydown', (event) => {
+		if (gameRunning && !browserKeepsKey(event) && !printable(event))
+			event.preventDefault();
+	});
+	for (const type of ['keyup', 'keypress']) {
 		window.addEventListener(type, (event) => {
 			if (gameRunning && !browserKeepsKey(event))
 				event.preventDefault();

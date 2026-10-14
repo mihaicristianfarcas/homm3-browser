@@ -10,6 +10,7 @@
 //   HOST          address to listen on                         (default 0.0.0.0)
 //   WEB_ROOT      folder with the built web app                 (default ../dist)
 //   NET_TARGETS   comma separated "name:port=host:port" routes  (default "lobby:3031=127.0.0.1:3031")
+//   LOBBY         lobby the game connects to, as "name:port"     (default "lobby:3031")
 
 import http from 'node:http';
 import net from 'node:net';
@@ -23,6 +24,10 @@ const PORT = Number(process.env.PORT ?? 8642);
 const HOST = process.env.HOST ?? '0.0.0.0';
 const WEB_ROOT = path.resolve(here, process.env.WEB_ROOT ?? '../dist');
 const NET_TARGETS = parseTargets(process.env.NET_TARGETS ?? 'lobby:3031=127.0.0.1:3031');
+const [LOBBY_HOSTNAME, LOBBY_PORT] = (process.env.LOBBY ?? 'lobby:3031').split(':');
+
+// Settings for the game, read by the launcher page
+const GAME_CONFIG = JSON.stringify({ lobbyHostname: LOBBY_HOSTNAME, lobbyPort: Number(LOBBY_PORT) });
 
 const MIME_TYPES = {
 	'.html': 'text/html; charset=utf-8',
@@ -103,6 +108,12 @@ function pickEncoding(request, filePath) {
 
 function serveStatic(request, response) {
 	const url = new URL(request.url, 'http://localhost');
+
+	if (url.pathname === '/config.json') {
+		response.writeHead(200, { ...SECURITY_HEADERS, 'Content-Type': 'application/json' });
+		response.end(GAME_CONFIG);
+		return;
+	}
 	const found = resolveFile(url.pathname);
 
 	if (!found || (request.method !== 'GET' && request.method !== 'HEAD')) {

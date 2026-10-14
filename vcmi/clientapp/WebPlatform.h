@@ -17,6 +17,9 @@ namespace WebPlatform
 	/// Mounts persistent browser storage. Must be called before VCMIDirs is used
 	void mountFilesystems();
 
+	/// Applies settings provided by the hosting page (e.g. lobby server address). Requires loaded settings
+	void applyPageSettings();
+
 	/// Notifies the hosting web page about client lifecycle (loading progress, errors, shutdown)
 	void notify(const std::string & event, const std::string & detail = {});
 

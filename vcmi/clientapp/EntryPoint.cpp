@@ -249,6 +249,10 @@ int main(int argc, char * argv[])
 		handleFatalError(e.what(), true);
 	}
 
+#ifdef VCMI_EMSCRIPTEN
+	WebPlatform::applyPageSettings();
+#endif
+
 	Settings session = settings.write["session"];
 	auto setSettingBool = [&](const std::string & key, const std::string & arg) {
 		Settings s = settings.write(vstd::split(key, "/"));
