@@ -1,0 +1,16 @@
+name: Idea or feature request
+description: Suggest an improvement
+labels: [enhancement]
+body:
+  - type: textarea
+    id: idea
+    attributes:
+      label: What would you like?
+      description: Describe the idea and the problem it solves for players or lobby masters.
+    validations:
+      required: true
+  - type: textarea
+    id: context
+    attributes:
+      label: Anything else?
+      description: Alternatives you considered, examples, screenshots.

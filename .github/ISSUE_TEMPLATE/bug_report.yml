@@ -1,0 +1,56 @@
+name: Bug report
+description: Something doesn't work in the game, the launcher or the server
+labels: [bug]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for reporting! If the same problem happens in desktop VCMI 1.7.5, please report it to
+        [VCMI](https://github.com/vcmi/vcmi/issues) instead. Don't include invite keys or private addresses.
+  - type: dropdown
+    id: role
+    attributes:
+      label: You are
+      options:
+        - A player
+        - The lobby master (running the server)
+        - A developer
+    validations:
+      required: true
+  - type: input
+    id: browser
+    attributes:
+      label: Browser and device
+      placeholder: Safari 18.2 on iPhone 15, Firefox 131 on Windows 11, ...
+    validations:
+      required: true
+  - type: dropdown
+    id: hosting
+    attributes:
+      label: How the server runs (if you know)
+      options:
+        - I don't know
+        - Docker
+        - Linux or WSL service
+        - In a terminal (scripts/serve.sh)
+        - Local development build
+  - type: textarea
+    id: what
+    attributes:
+      label: What happened
+      description: What did you do, what happened, and what did you expect?
+    validations:
+      required: true
+  - type: textarea
+    id: steps
+    attributes:
+      label: Steps to reproduce
+      placeholder: |
+        1. New Game → Single Scenario → ...
+        2. ...
+  - type: textarea
+    id: logs
+    attributes:
+      label: Game messages
+      description: Open the game with `?debug` added to the address, reproduce the problem, and paste the browser console output, or the log shown on the error screen. Server problems: the server's messages.
+      render: text

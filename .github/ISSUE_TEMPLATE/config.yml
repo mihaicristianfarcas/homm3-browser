@@ -1,0 +1,8 @@
+blank_issues_enabled: true
+contact_links:
+  - name: Bugs in the game engine (also in desktop VCMI)
+    url: https://github.com/vcmi/vcmi/issues
+    about: Problems that also happen in desktop VCMI belong to the VCMI project.
+  - name: Security problem
+    url: https://github.com/mihaicristianfarcas/homm3-browser/security/advisories/new
+    about: Please report vulnerabilities privately.
