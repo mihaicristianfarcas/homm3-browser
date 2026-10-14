@@ -13,6 +13,7 @@
 #include "../eventsSDL/InputHandler.h"
 #include "../GameEngine.h"
 #include "../renderSDL/SDLRWwrapper.h"
+#include "../../lib/filesystem/CMemoryBuffer.h"
 
 #include "../../lib/entities/faction/CFaction.h"
 #include "../../lib/entities/faction/CTown.h"
@@ -265,6 +266,19 @@ void MusicEntry::load(const AudioPath & musicURI)
 
 		if(musicURI.getName() == "BLADEFWCAMPAIGN") // handle defect MP3 file - ffprobe says: Skipping 52 bytes of junk at 0.
 			stream->seek(52);
+
+#ifdef VCMI_EMSCRIPTEN
+		// Music is decoded inside the audio callback, which browsers run on the page's main thread.
+		// File reads there would block the page on browser storage, so keep the whole track in memory
+		{
+			std::vector<ui8> data(stream->getSize() - stream->tell());
+			data.resize(stream->read(data.data(), data.size()));
+			auto buffer = std::make_unique<CMemoryBuffer>();
+			buffer->write(data.data(), data.size());
+			buffer->seek(0);
+			stream = std::move(buffer);
+		}
+#endif
 
 		auto * musicFile = MakeSDLRWops(std::move(stream));
 		music = Mix_LoadMUS_RW(musicFile, SDL_TRUE);

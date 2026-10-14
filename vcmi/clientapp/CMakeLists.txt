@@ -65,7 +65,7 @@ if(EMSCRIPTEN)
 		"-sENVIRONMENT=web,worker"
 		"-sMODULARIZE=1"
 		"-sEXPORT_NAME=createVcmiModule"
-		"-sEXPORTED_RUNTIME_METHODS=['HEAPU8']"
+		"-sEXPORTED_RUNTIME_METHODS=['HEAPU8','ENV']"
 		"--profiling-funcs"
 		"--js-library=${VCMI_WEB_JS_LIBRARY}"
 

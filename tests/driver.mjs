@@ -2,7 +2,7 @@
 // Launches a browser, keeps it open and exposes a small HTTP control API, so a test session can
 // be driven step by step (screenshots, clicks, keys, logs) from the command line.
 //
-//   node driver.mjs --browser helium|firefox [--port 9400] [--url http://localhost:8642/] [--seed]
+//   node driver.mjs --browser helium|firefox [--port 9400] [--url http://localhost:8642/] [--seed] [--headful] [--dumpio]
 //
 // --seed copies ../gamedata into the browser's OPFS (as the launcher's import would), served from
 // a local helper server, so tests don't need the folder picker.
@@ -106,7 +106,11 @@ async function seed(page) {
 const config = BROWSERS[name];
 const browser = await puppeteer.launch({
 	...config,
-	headless: false,
+	// headless by default, so test runs don't take over the screen
+	headless: !args.headful,
+	// browser's own output, including worker console messages in Firefox
+	dumpio: Boolean(args.dumpio),
+	extraPrefsFirefox: { 'devtools.console.stdout.content': true },
 	userDataDir: profileDir,
 	defaultViewport: null,
 	args: config.browser === 'chrome' ? ['--window-size=1400,900', '--no-first-run', '--no-default-browser-check', '--enable-features=SharedArrayBuffer'] : ['--width=1400', '--height=900'],

@@ -365,6 +365,11 @@ async function startGame() {
 					$('loading-label').textContent = text.replace(/\((\d+)\/(\d+)\)/, (_, a, b) => `(${formatSize(+a)} of ${formatSize(+b)})`);
 			},
 			onVcmiEvent: onGameEvent,
+			preRun: [(module) => {
+				// ?audio=off runs without sound, e.g. for browsers with broken audio
+				if (params.get('audio') === 'off')
+					module.ENV.SDL_AUDIODRIVER = 'dummy';
+			}],
 			onAbort: (reason) => endGame('The game stopped because of an error', String(reason ?? ''), true),
 		});
 		$('loading-label').textContent = 'Starting VCMI…';
