@@ -153,6 +153,13 @@ const routes = {
 		const since = Number(q.get('since') ?? 0);
 		return { next: logs.length, lines: logs.slice(since) };
 	},
+	async resize(q) {
+		const session = await page.createCDPSession();
+		const { windowId } = await session.send('Browser.getWindowForTarget');
+		await session.send('Browser.setWindowBounds', { windowId, bounds: { width: Number(q.get('w')), height: Number(q.get('h')), windowState: 'normal' } });
+		await session.detach();
+		return { ok: true };
+	},
 	async goto(q) {
 		await page.goto(q.get('url'), { waitUntil: 'load' });
 		return { ok: true };

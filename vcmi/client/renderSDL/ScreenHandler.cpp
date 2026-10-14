@@ -39,6 +39,10 @@
 #	include "ios/utils.h"
 #endif
 
+#ifdef VCMI_EMSCRIPTEN
+#	include <emscripten/em_asm.h>
+#endif
+
 #include <SDL.h>
 
 // TODO: should be made into a private members of ScreenHandler
@@ -193,6 +197,11 @@ int ScreenHandler::getPreferredDisplayIndex() const
 
 EWindowMode ScreenHandler::getPreferredWindowMode() const
 {
+#ifdef VCMI_EMSCRIPTEN
+	// In browsers the game always renders to the page canvas, which follows the browser window.
+	// Fullscreen is a state of the page, see updateWindowState()
+	return EWindowMode::WINDOWED;
+#endif
 #ifdef VCMI_MOBILE
 	// On Android / ios game will always render to screen size
 	return EWindowMode::FULLSCREEN_BORDERLESS_WINDOWED;
@@ -252,6 +261,14 @@ ScreenHandler::ScreenHandler()
 	SDL_GL_SetAttribute(SDL_GL_DEPTH_SIZE, 0);
 #endif // VCMI_ANDROID
 
+#ifdef VCMI_EMSCRIPTEN
+	// pages always open windowed, fullscreen can only be entered on player request
+	{
+		Settings video = settings.write["video"];
+		video["fullscreen"].Bool() = false;
+	}
+#endif
+
 	validateSettings();
 	recreateWindowAndScreenBuffers();
 }
@@ -275,6 +292,17 @@ void ScreenHandler::recreateWindowAndScreenBuffers()
 
 void ScreenHandler::updateWindowState()
 {
+#ifdef VCMI_EMSCRIPTEN
+	// Canvas size is controlled by the page. Only fullscreen can be changed - which browsers allow
+	// shortly after user input, e.g. right after the player toggled the fullscreen option
+	MAIN_THREAD_ASYNC_EM_ASM({
+		if ($0 && !document.fullscreenElement)
+			document.documentElement.requestFullscreen?.({ navigationUI: 'hide' }).catch(() => {});
+		else if (!$0 && document.fullscreenElement)
+			document.exitFullscreen?.().catch(() => {});
+	}, settings["video"]["fullscreen"].Bool());
+	return;
+#endif
 #ifndef VCMI_MOBILE
 	int displayIndex = getPreferredDisplayIndex();
 
