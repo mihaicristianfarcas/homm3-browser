@@ -28,6 +28,7 @@ let gameDataKey = null; // access key for the server's game data, from the invit
 let game = null; // Emscripten module once started
 let gameRunning = false;
 let gameStopped = false; // quit, crashed or failed to start
+let downloadRetries = 0; // automatic retries of the current game data download
 const recentLog = [];
 
 // ------------------------------------------------------------------------------------------
@@ -225,6 +226,8 @@ async function pendingDownloads() {
 		.map((file) => ({ ...file, url: new URL(file.path.split('/').map(encodeURIComponent).join('/'), base).href }));
 }
 
+const MAX_DOWNLOAD_RETRIES = 3;
+
 async function startDownload(files) {
 	const total = files.reduce((sum, file) => sum + file.size, 0);
 	$('download-size').textContent = formatSize(total);
@@ -254,11 +257,20 @@ async function startDownload(files) {
 				: 'Finishing…';
 		});
 	} catch (error) {
+		// connection or storage hiccups: continue by itself a few times, with the files still missing
+		if (error.transient && downloadRetries < MAX_DOWNLOAD_RETRIES) {
+			downloadRetries++;
+			$('download-label').textContent = `Interrupted (${error.message}), continuing…`;
+			await new Promise((resolve) => setTimeout(resolve, 2000 * downloadRetries));
+			await showLauncher();
+			return;
+		}
 		$('download-error').textContent = `The download stopped: ${error.message}. Downloaded files are kept, trying again continues where it stopped.`;
 		$('download-error').hidden = false;
 		$('download-retry').hidden = false;
 		return;
 	}
+	downloadRetries = 0;
 
 	await showLauncher();
 	if (params.has('autostart') && !$('play').disabled)
@@ -266,7 +278,10 @@ async function startDownload(files) {
 }
 
 function setupDownload() {
-	$('download-retry').addEventListener('click', showLauncher);
+	$('download-retry').addEventListener('click', () => {
+		downloadRetries = 0;
+		showLauncher();
+	});
 	$('download-own').addEventListener('click', () => showImport(true));
 	$('invite').addEventListener('click', async () => {
 		const link = `${location.origin}${location.pathname}?key=${encodeURIComponent(gameDataKey)}`;
@@ -365,7 +380,7 @@ function runImportWorker(message, onProgress) {
 				if (data.type === 'done')
 					resolve();
 				else
-					reject(new Error(data.message));
+					reject(Object.assign(new Error(data.message), { transient: data.transient }));
 			}
 		};
 		worker.onerror = (event) => {
