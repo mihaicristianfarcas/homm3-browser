@@ -11,9 +11,11 @@ Works in current Chrome / Edge / Helium, Firefox and Safari 17+.
 
 ## Playing
 
-1. Open the site and choose your Heroes III Complete installation folder
-   (GOG: `C:\GOG Games\HoMM 3 Complete`). `Data`, `Maps` and `Mp3` are copied into the browser's
-   private storage (OPFS), about 360 MB.
+1. Open the **invite link** (`https://…/?key=…`, printed by the deploy script, or *Copy invite link*
+   on the launcher). The game files are downloaded from the server into the browser's private
+   storage (OPFS) once, about 360 MB; later visits start right away.
+   Without an invite link, choose your own Heroes III Complete installation folder instead
+   (GOG: `C:\GOG Games\HoMM 3 Complete`); `Data`, `Maps` and `Mp3` are copied from it.
 2. Press **Play**. Saves and settings are kept in the browser, per site. Cutscene videos are not used.
 
 Single player, campaigns and hot-seat work like the desktop game.
@@ -83,7 +85,15 @@ scripts/deploy-wsl.sh user@windows-pc
 
 ### Server configuration
 
-`server/server.mjs` reads `PORT` (8642), `HOST`, `WEB_ROOT`, `NET_TARGETS` and `LOBBY`.
+`server/server.mjs` reads `PORT` (8642), `HOST`, `WEB_ROOT`, `NET_TARGETS`, `LOBBY`, `GAMEDATA_DIR`
+and `GAMEDATA_KEY`.
+
+`GAMEDATA_DIR` makes the server offer the game files (`Data`, `Maps`, `Mp3` of a Heroes III
+installation, videos excluded) at `/gamedata/`; the launcher downloads missing or changed files
+automatically. `GAMEDATA_KEY` restricts the download to players with the invite link — keep it
+set, and keep the link among friends who own the game. `deploy/bundle-gamedata.sh` sets both up
+(the deploy script runs it with `GAMEDATA_SOURCE`, default `C:\GOG Games\HoMM 3 Complete`).
+
 Browsers can only reach TCP services listed in `NET_TARGETS` (`name:port=host:port`, comma
 separated). For example, to also allow the official VCMI lobby for cross-play with desktop VCMI
 players:

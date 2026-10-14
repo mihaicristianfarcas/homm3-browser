@@ -22,6 +22,9 @@ const IMPORT_RULES = {
 };
 
 const params = new URLSearchParams(location.search);
+const KEY_STORAGE = 'homm3-gamedata-key';
+let config = {}; // deployment settings from the server (config.json)
+let gameDataKey = null; // access key for the server's game data, from the invite link
 let game = null; // Emscripten module once started
 let gameRunning = false;
 const recentLog = [];
@@ -110,9 +113,20 @@ async function inspectGameFiles() {
 }
 
 async function showLauncher() {
+	let bundleNote = '';
+	try {
+		const downloads = await pendingDownloads();
+		if (downloads?.length) {
+			startDownload(downloads);
+			return;
+		}
+	} catch (error) {
+		bundleNote = error.message;
+	}
+
 	const files = await inspectGameFiles();
 	if (files.empty) {
-		showImport(false);
+		showImport(false, bundleNote);
 		return;
 	}
 
@@ -133,6 +147,7 @@ async function showLauncher() {
 	add(files.music ? 'ok' : 'optional', files.music ? `${files.music} music tracks` : 'No music (optional)');
 
 	$('play').disabled = !files.ready;
+	$('invite').hidden = !(config.gameData && gameDataKey);
 
 	const estimate = await navigator.storage.estimate?.();
 	const persisted = await navigator.storage.persisted?.();
@@ -145,10 +160,131 @@ async function showLauncher() {
 }
 
 // ------------------------------------------------------------------------------------------
+// Download from the server's game data bundle
+// ------------------------------------------------------------------------------------------
+
+/// Access key from the invite link (?key=...), remembered so that later visits work without it
+function loadGameDataKey() {
+	const fromLink = params.get('key');
+	if (fromLink) {
+		try {
+			localStorage.setItem(KEY_STORAGE, fromLink);
+		} catch {
+			// storage unavailable - the key works for this visit only
+		}
+		const url = new URL(location.href);
+		url.searchParams.delete('key');
+		history.replaceState(null, '', url);
+		return fromLink;
+	}
+	try {
+		return localStorage.getItem(KEY_STORAGE);
+	} catch {
+		return null;
+	}
+}
+
+async function readBundleState() {
+	try {
+		const file = await (await (await opfsDirectory('h3')).getFileHandle('.bundle.json')).getFile();
+		return JSON.parse(await file.text());
+	} catch {
+		return null;
+	}
+}
+
+/// Files to download from the server: missing, incomplete or changed ones.
+/// Returns null when the server offers no game data or the player uses their own files
+async function pendingDownloads() {
+	if (!config.gameData)
+		return null;
+
+	const state = await readBundleState();
+	if (!state && (await inspectGameFiles()).ready)
+		return null; // the player's own game files
+
+	if (config.gameData.keyRequired && !gameDataKey)
+		throw new Error('This server can download the game for invited players. Open the invite link you were given, or use your own game files.');
+
+	const response = await fetch(config.gameData.manifest, { headers: gameDataKey ? { 'X-Game-Key': gameDataKey } : {}, cache: 'no-store' });
+	if (response.status === 403)
+		throw new Error('The key in your invite link is not valid. Ask for a new link, or use your own game files.');
+	if (!response.ok)
+		throw new Error(`The game files could not be downloaded (server answered ${response.status}). You can use your own game files instead.`);
+	const manifest = await response.json();
+
+	const present = new Map();
+	for (const dir of ['Data', 'Maps', 'Mp3'])
+		for (const [name, size] of await listFiles(`h3/${dir}`))
+			present.set(`${dir}/${name}`.toLowerCase(), size);
+
+	const base = new URL(config.gameData.manifest, location.href);
+	return manifest.files
+		.filter((file) => present.get(file.path.toLowerCase()) !== file.size || (state?.[file.path] && state[file.path] !== file.sha256))
+		.map((file) => ({ ...file, url: new URL(file.path.split('/').map(encodeURIComponent).join('/'), base).href }));
+}
+
+async function startDownload(files) {
+	const total = files.reduce((sum, file) => sum + file.size, 0);
+	$('download-size').textContent = formatSize(total);
+	$('download-error').hidden = true;
+	$('download-retry').hidden = true;
+	$('download-bar').style.width = '0';
+	$('download-label').textContent = 'Starting…';
+	showScreen('download');
+
+	const estimate = await navigator.storage.estimate?.();
+	if (estimate?.quota && estimate.quota - (estimate.usage ?? 0) < total) {
+		$('download-error').textContent = `This browser only allows ${formatSize(estimate.quota - (estimate.usage ?? 0))} more storage for this site, ${formatSize(total)} are needed. Free up disk space and try again.`;
+		$('download-error').hidden = false;
+		$('download-retry').hidden = false;
+		return;
+	}
+	navigator.storage.persist?.();
+
+	const started = performance.now();
+	try {
+		await runImportWorker({ type: 'download', files, key: gameDataKey }, ({ copied, file, index, count }) => {
+			const seconds = (performance.now() - started) / 1000;
+			const speed = seconds > 1 ? ` · ${formatSize(copied / seconds)}/s` : '';
+			$('download-bar').style.width = `${(copied / total) * 100}%`;
+			$('download-label').textContent = file
+				? `${formatSize(copied)} of ${formatSize(total)}${speed} — ${file} (${Math.min(index + 1, count)} of ${count})`
+				: 'Finishing…';
+		});
+	} catch (error) {
+		$('download-error').textContent = `The download stopped: ${error.message}. Downloaded files are kept, trying again continues where it stopped.`;
+		$('download-error').hidden = false;
+		$('download-retry').hidden = false;
+		return;
+	}
+
+	await showLauncher();
+	if (params.has('autostart') && !$('play').disabled)
+		startGame();
+}
+
+function setupDownload() {
+	$('download-retry').addEventListener('click', showLauncher);
+	$('download-own').addEventListener('click', () => showImport(true));
+	$('invite').addEventListener('click', async () => {
+		const link = `${location.origin}${location.pathname}?key=${encodeURIComponent(gameDataKey)}`;
+		try {
+			await navigator.clipboard.writeText(link);
+			$('invite').textContent = 'Invite link copied';
+		} catch {
+			prompt('Send this link to your friends:', link);
+		}
+	});
+}
+
+// ------------------------------------------------------------------------------------------
 // Import
 // ------------------------------------------------------------------------------------------
 
-function showImport(canGoBack) {
+function showImport(canGoBack, note = '') {
+	$('import-note').textContent = note;
+	$('import-note').hidden = !note;
 	$('import-back').hidden = !canGoBack;
 	$('clear-data').hidden = !canGoBack;
 	$('import-error').hidden = true;
@@ -288,7 +424,7 @@ function setupImport() {
 		if (!confirm('Remove the Heroes III files from this browser? Saved games are kept.'))
 			return;
 		await runImportWorker({ type: 'clear' });
-		showImport(false);
+		await showLauncher();
 	});
 }
 
@@ -369,15 +505,14 @@ async function startGame() {
 	$('loading-label').textContent = 'Loading game engine…';
 
 	try {
-		// deployment settings, such as the lobby server address. Optional
-		const config = await fetch('config.json').then((r) => (r.ok ? r.json() : {})).catch(() => ({}));
+		const gameConfig = { ...config };
 		// ?debug: verbose game logging in the browser console
 		if (params.has('debug'))
-			config.logLevel = params.get('debug') || 'debug';
+			gameConfig.logLevel = params.get('debug') || 'debug';
 
 		await loadScript('vcmiclient.js');
 		game = await createVcmiModule({
-			vcmiConfig: config,
+			vcmiConfig: gameConfig,
 			canvas: $('canvas'),
 			mainScriptUrlOrBlob: new URL('vcmiclient.js', location.href).href,
 			print: (text) => log(text, false),
@@ -489,14 +624,20 @@ async function main() {
 		return;
 	}
 
+	// deployment settings, such as the lobby server address and downloadable game data. Optional
+	config = await fetch('config.json', { cache: 'no-store' }).then((r) => (r.ok ? r.json() : {})).catch(() => ({}));
+	gameDataKey = loadGameDataKey();
+
 	setupImport();
+	setupDownload();
 	setupInput();
 	setupPixelScaling();
 	$('play').addEventListener('click', startGame);
 	$('restart').addEventListener('click', () => location.reload());
 
 	await showLauncher();
-	if (params.has('autostart') && !$('play').disabled)
+	// when game files are being downloaded first, the download starts the game once it is done
+	if (params.has('autostart') && !$('screen-launcher').hidden && !$('play').disabled)
 		startGame();
 }
 

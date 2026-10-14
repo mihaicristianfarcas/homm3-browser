@@ -35,8 +35,25 @@
 				<div class="actions">
 					<button id="play" class="primary" type="button">Play</button>
 					<button id="manage" class="secondary" type="button">Manage game files</button>
+					<button id="invite" class="secondary" type="button" hidden>Copy invite link</button>
 				</div>
+				<p class="hint">Play together: <em>New Game &rarr; Multiplayer &rarr; Online Lobby</em> (the globe), then create or join a room.</p>
 				<p class="hint" id="storage-info"></p>
+			</section>
+
+			<!-- Game data download from this server -->
+			<section id="screen-download" class="screen" hidden>
+				<h2>Downloading the game</h2>
+				<p>Heroes III is downloaded into this browser once (<span id="download-size"></span>). After that it starts right away, and only changed files are downloaded again.</p>
+				<div class="progress">
+					<div class="bar"><div id="download-bar"></div></div>
+					<p id="download-label" class="hint">Starting&hellip;</p>
+				</div>
+				<p id="download-error" class="error" hidden></p>
+				<div class="actions">
+					<button id="download-retry" class="primary" type="button" hidden>Try again</button>
+					<button id="download-own" class="secondary" type="button">Use my own game files instead</button>
+				</div>
 			</section>
 
 			<!-- Game data import -->
@@ -56,6 +73,7 @@
 					<div class="bar"><div id="import-bar"></div></div>
 					<p id="import-label" class="hint"></p>
 				</div>
+				<p id="import-note" class="hint" hidden></p>
 				<p id="import-error" class="error" hidden></p>
 				<div class="actions">
 					<button id="import-back" class="secondary" type="button" hidden>Back</button>

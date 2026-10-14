@@ -4,6 +4,8 @@
 // - Serves precompressed (.br / .gz) files when the browser accepts them
 // - Bridges WebSockets at /net/<host>/<port> to TCP, so the game can reach the VCMI lobby server.
 //   Only targets listed in the configuration can be reached - this is not an open proxy.
+// - Optionally offers Heroes III game files for download at /gamedata/, so players don't need their
+//   own installation. Protected by an access key that is part of the link shared with players.
 //
 // Configuration (environment variables):
 //   PORT          HTTP port to listen on                       (default 8642)
@@ -11,8 +13,11 @@
 //   WEB_ROOT      folder with the built web app                 (default ../dist)
 //   NET_TARGETS   comma separated "name:port=host:port" routes  (default "lobby:3031=127.0.0.1:3031")
 //   LOBBY         lobby the game connects to, as "name:port"     (default "lobby:3031")
+//   GAMEDATA_DIR  folder with Heroes III files (Data, Maps, Mp3) offered for download (default: none)
+//   GAMEDATA_KEY  key required to download them, given to players as ?key= in the link (default: none)
 
 import http from 'node:http';
+import crypto from 'node:crypto';
 import net from 'node:net';
 import fs from 'node:fs';
 import path from 'node:path';
@@ -26,8 +31,19 @@ const WEB_ROOT = path.resolve(here, process.env.WEB_ROOT ?? '../dist');
 const NET_TARGETS = parseTargets(process.env.NET_TARGETS ?? 'lobby:3031=127.0.0.1:3031');
 const [LOBBY_HOSTNAME, LOBBY_PORT] = (process.env.LOBBY ?? 'lobby:3031').split(':');
 
+// Same selection as the launcher's folder import: everything the game needs, no cutscene videos
+const GAMEDATA_RULES = { Data: /\.(lod|snd|pac)$/i, Maps: /\.(h3m|h3c|tut)$/i, Mp3: /\.mp3$/i };
+
+const GAMEDATA_DIR = process.env.GAMEDATA_DIR ? path.resolve(process.env.GAMEDATA_DIR) : null;
+const GAMEDATA_KEY = process.env.GAMEDATA_KEY ?? '';
+const gameData = GAMEDATA_DIR ? await scanGameData(GAMEDATA_DIR) : null;
+
 // Settings for the game, read by the launcher page
-const GAME_CONFIG = JSON.stringify({ lobbyHostname: LOBBY_HOSTNAME, lobbyPort: Number(LOBBY_PORT) });
+const GAME_CONFIG = JSON.stringify({
+	lobbyHostname: LOBBY_HOSTNAME,
+	lobbyPort: Number(LOBBY_PORT),
+	gameData: gameData && { manifest: 'gamedata/manifest.json', totalSize: gameData.manifest.totalSize, keyRequired: Boolean(GAMEDATA_KEY) },
+});
 
 const MIME_TYPES = {
 	'.html': 'text/html; charset=utf-8',
@@ -65,6 +81,80 @@ function parseTargets(spec) {
 
 function log(...args) {
 	console.log(new Date().toISOString(), ...args);
+}
+
+// ------------------------------------------------------------------------------------------
+// Game data downloads
+// ------------------------------------------------------------------------------------------
+
+function hashFile(file) {
+	return new Promise((resolve, reject) => {
+		const hash = crypto.createHash('sha256');
+		fs.createReadStream(file).on('data', (chunk) => hash.update(chunk)).on('end', () => resolve(hash.digest('hex'))).on('error', reject);
+	});
+}
+
+async function scanGameData(root) {
+	const files = [];
+	const sources = new Map();
+	for (const [dir, accept] of Object.entries(GAMEDATA_RULES)) {
+		// installations differ in folder name case (MP3, Mp3)
+		const folder = fs.readdirSync(root).find((name) => name.toLowerCase() === dir.toLowerCase());
+		if (!folder)
+			continue;
+		for (const name of fs.readdirSync(path.join(root, folder)).sort()) {
+			const source = path.join(root, folder, name);
+			const stat = fs.statSync(source);
+			if (!stat.isFile() || !accept.test(name))
+				continue;
+			const entry = { path: `${dir}/${name}`, size: stat.size, sha256: await hashFile(source) };
+			files.push(entry);
+			sources.set(entry.path, { source, size: stat.size });
+		}
+	}
+	const version = crypto.createHash('sha256').update(files.map((f) => `${f.path}:${f.sha256}`).join('\n')).digest('hex').slice(0, 16);
+	const totalSize = files.reduce((sum, f) => sum + f.size, 0);
+	log(`Offering ${files.length} game data files (${Math.round(totalSize / 1e6)} MB) from ${root}, version ${version}`);
+	return { manifest: { version, totalSize, files }, sources };
+}
+
+function keyMatches(given) {
+	if (!GAMEDATA_KEY)
+		return true;
+	const a = Buffer.from(String(given ?? ''));
+	const b = Buffer.from(GAMEDATA_KEY);
+	return a.length === b.length && crypto.timingSafeEqual(a, b);
+}
+
+function serveGameData(request, response, url) {
+	const headers = { ...SECURITY_HEADERS, 'Cache-Control': 'no-store' }; // kept in browser storage, not the HTTP cache
+
+	if (!gameData || !keyMatches(url.searchParams.get('key') ?? request.headers['x-game-key'])) {
+		log(`[gamedata] refused ${url.pathname} for ${request.headers['x-forwarded-for'] ?? request.socket.remoteAddress}`);
+		response.writeHead(gameData ? 403 : 404, { ...headers, 'Content-Type': 'text/plain' });
+		response.end(gameData ? 'Invalid or missing game data key' : 'No game data on this server');
+		return;
+	}
+
+	const relative = decodeURIComponent(url.pathname.slice('/gamedata/'.length));
+	if (relative === 'manifest.json') {
+		log(`[gamedata] manifest for ${request.headers['x-forwarded-for'] ?? request.socket.remoteAddress}`);
+		response.writeHead(200, { ...headers, 'Content-Type': 'application/json' });
+		response.end(JSON.stringify(gameData.manifest));
+		return;
+	}
+
+	const file = gameData.sources.get(relative);
+	if (!file) {
+		response.writeHead(404, { ...headers, 'Content-Type': 'text/plain' });
+		response.end('Not found');
+		return;
+	}
+	response.writeHead(200, { ...headers, 'Content-Type': 'application/octet-stream', 'Content-Length': file.size });
+	if (request.method === 'HEAD')
+		response.end();
+	else
+		fs.createReadStream(file.source).pipe(response);
 }
 
 // ------------------------------------------------------------------------------------------
@@ -108,6 +198,11 @@ function pickEncoding(request, filePath) {
 
 function serveStatic(request, response) {
 	const url = new URL(request.url, 'http://localhost');
+
+	if (url.pathname.startsWith('/gamedata/')) {
+		serveGameData(request, response, url);
+		return;
+	}
 
 	if (url.pathname === '/config.json') {
 		response.writeHead(200, { ...SECURITY_HEADERS, 'Content-Type': 'application/json' });

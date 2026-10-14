@@ -14,7 +14,7 @@ STATE=/var/lib/homm3
 export DEBIAN_FRONTEND=noninteractive
 apt-get update -qq
 apt-get install -y -qq --no-install-recommends \
-	cmake ninja-build g++ pkg-config sqlite3 nodejs npm \
+	cmake ninja-build g++ pkg-config sqlite3 nodejs npm rsync \
 	libboost-dev libboost-filesystem-dev libboost-locale-dev libboost-program-options-dev libboost-date-time-dev \
 	libsqlite3-dev zlib1g-dev libminizip-dev >/dev/null
 

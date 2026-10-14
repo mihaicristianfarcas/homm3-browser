@@ -139,7 +139,16 @@ page.on('workercreated', (worker) => {
 // the launcher asks before leaving a running game - tests navigate away on purpose
 page.on('dialog', (dialog) => dialog.accept());
 page.on('pageerror', (err) => record(`[pageerror] ${err.message}`));
+page.on('error', (err) => record(`[crash] ${err.message}`));
+page.on('framenavigated', (frame) => frame === page.mainFrame() && record(`[navigated] ${frame.url()}`));
 page.on('requestfailed', (req) => record(`[requestfailed] ${req.url()} ${req.failure()?.errorText}`));
+
+if (config.browser === 'chrome') {
+	// why the page navigates (reload, script, link...) - for debugging unexpected reloads
+	const cdp = await page.createCDPSession();
+	await cdp.send('Page.enable');
+	cdp.on('Page.frameRequestedNavigation', (e) => record(`[navigation requested] ${e.reason} ${e.disposition} ${e.url}`));
+}
 
 await page.goto(url, { waitUntil: 'load' });
 if (args.seed) {
