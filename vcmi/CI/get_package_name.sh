@@ -1,0 +1,36 @@
+#!/bin/sh
+
+echo "Using Github environment variables!"
+TMP_JOBID="$GITHUB_RUN_ID"
+TMP_BRANCH=$(basename ${GITHUB_REF#refs/heads/})
+TMP_PRID="$PULL_REQUEST"
+TMP_COMMIT=$(git rev-parse --short "$GITHUB_SHA")
+
+VCMI_PACKAGE_FILE_NAME="${TMP_JOBID}-vcmi"
+VCMI_PACKAGE_BUILD="${TMP_COMMIT}"
+VCMI_PACKAGE_NAME_SUFFIX=""
+VCMI_PACKAGE_GOLDMASTER="OFF"
+if [ -z "$TMP_PRID" ] || [ "$TMP_PRID" == "false" ]
+then
+	branch_name=$(echo "$TMP_BRANCH" | sed 's/[^[:alnum:]]\+/_/g')
+	VCMI_PACKAGE_FILE_NAME="${VCMI_PACKAGE_FILE_NAME}-branch-${branch_name}-${TMP_COMMIT}"
+	if [ "${branch_name}" != "master" ];
+	then
+		VCMI_PACKAGE_NAME_SUFFIX="(branch ${branch_name})"
+	else
+		VCMI_PACKAGE_GOLDMASTER="ON"
+	fi
+else
+	VCMI_PACKAGE_FILE_NAME="${VCMI_PACKAGE_FILE_NAME}-PR-${TMP_PRID}-${TMP_COMMIT}"
+	VCMI_PACKAGE_NAME_SUFFIX="(PR ${TMP_PRID})"
+fi
+
+echo "VCMI_PACKAGE_FILE_NAME=${VCMI_PACKAGE_FILE_NAME}"
+echo "VCMI_PACKAGE_BUILD=${VCMI_PACKAGE_BUILD}"
+echo "VCMI_PACKAGE_NAME_SUFFIX=${VCMI_PACKAGE_NAME_SUFFIX}"
+echo "VCMI_PACKAGE_GOLDMASTER=${VCMI_PACKAGE_GOLDMASTER}"
+
+export VCMI_PACKAGE_FILE_NAME
+export VCMI_PACKAGE_BUILD
+export VCMI_PACKAGE_NAME_SUFFIX
+export VCMI_PACKAGE_GOLDMASTER

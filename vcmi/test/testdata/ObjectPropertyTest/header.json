@@ -1,0 +1,367 @@
+{
+	"allowedAbilities" : {
+		"anyOf" : [
+			"airMagic",
+			"archery",
+			"armorer",
+			"artillery",
+			"ballistics",
+			"diplomacy",
+			"earthMagic",
+			"estates",
+			"fireMagic",
+			"firstAid",
+			"intelligence",
+			"leadership",
+			"learning",
+			"logistics",
+			"luck",
+			"mysticism",
+			"navigation",
+			"necromancy",
+			"offence",
+			"pathfinding",
+			"resistance",
+			"scholar",
+			"scouting",
+			"sorcery",
+			"tactics",
+			"waterMagic",
+			"wisdom"
+		]
+	},
+	"allowedArtifacts" : {
+		"anyOf" : [
+			"core:admiralsHat",
+			"core:angelicAlliance",
+			"core:armageddonsBlade",
+			"core:armorOfTheDamned",
+			"core:bowOfTheSharpshooter",
+			"core:cloakOfTheUndeadKing",
+			"core:cornucopia",
+			"core:elixirOfLife",
+			"core:powerOfTheDragonFather",
+			"core:ringOfTheMagi",
+			"core:statueOfLegion",
+			"core:titansThunder",
+			"core:vialOfDragonBlood",
+			"core:wizardsWell"
+		]
+	},
+	"allowedHeroes" : {
+		"anyOf" : [
+			"core:adela",
+			"core:adelaide",
+			"core:aenain",
+			"core:aeris",
+			"core:aine",
+			"core:aislinn",
+			"core:ajit",
+			"core:alagar",
+			"core:alamar",
+			"core:alkin",
+			"core:andra",
+			"core:arlach",
+			"core:ash",
+			"core:astral",
+			"core:axsis",
+			"core:ayden",
+			"core:brissa",
+			"core:broghild",
+			"core:bron",
+			"core:caitlin",
+			"core:calh",
+			"core:calid",
+			"core:charna",
+			"core:christian",
+			"core:ciele",
+			"core:clancy",
+			"core:clavius",
+			"core:coronius",
+			"core:cragHack",
+			"core:cuthbert",
+			"core:cyra",
+			"core:dace",
+			"core:damacon",
+			"core:daremyth",
+			"core:darkstorn",
+			"core:deemer",
+			"core:dessa",
+			"core:drakon",
+			"core:elleshar",
+			"core:erdamon",
+			"core:fafner",
+			"core:fiona",
+			"core:fiur",
+			"core:galthran",
+			"core:gelare",
+			"core:gem",
+			"core:geon",
+			"core:gerwulf",
+			"core:gird",
+			"core:gretchin",
+			"core:grindan",
+			"core:gundula",
+			"core:gunnar",
+			"core:gurnisson",
+			"core:halon",
+			"core:ignatius",
+			"core:ignissa",
+			"core:inteus",
+			"core:iona",
+			"core:isra",
+			"core:ivor",
+			"core:jabarkas",
+			"core:jaegar",
+			"core:jeddite",
+			"core:jenova",
+			"core:josephine",
+			"core:kalt",
+			"core:korbac",
+			"core:krellion",
+			"core:kyrre",
+			"core:labetha",
+			"core:lacus",
+			"core:lorelei",
+			"core:loynis",
+			"core:malcom",
+			"core:malekith",
+			"core:marius",
+			"core:melodia",
+			"core:mephala",
+			"core:merist",
+			"core:mirlanda",
+			"core:moandor",
+			"core:monere",
+			"core:nagash",
+			"core:neela",
+			"core:nimbus",
+			"core:nymus",
+			"core:octavia",
+			"core:olema",
+			"core:oris",
+			"core:pasis",
+			"core:piquedram",
+			"core:pyre",
+			"core:rashka",
+			"core:rion",
+			"core:rissa",
+			"core:rosic",
+			"core:ryland",
+			"core:sandro",
+			"core:sanya",
+			"core:saurug",
+			"core:sephinroth",
+			"core:septienna",
+			"core:serena",
+			"core:shakti",
+			"core:shiva",
+			"core:sirMullich",
+			"core:solmyr",
+			"core:straker",
+			"core:styg",
+			"core:sylvia",
+			"core:synca",
+			"core:tamika",
+			"core:tazar",
+			"core:terek",
+			"core:thane",
+			"core:thant",
+			"core:theodorus",
+			"core:thorgrim",
+			"core:thunar",
+			"core:tiva",
+			"core:torosar ",
+			"core:tyraxor",
+			"core:tyris",
+			"core:ufretin",
+			"core:uland",
+			"core:verdish",
+			"core:vey",
+			"core:vidomina",
+			"core:vokial",
+			"core:voy",
+			"core:wystan",
+			"core:xarfax",
+			"core:xsi",
+			"core:xyron",
+			"core:yog",
+			"core:zubin",
+			"core:zydar"
+		]
+	},
+	"allowedSpells" : {
+		"anyOf" : [
+			"core:airElemental",
+			"core:airShield",
+			"core:animateDead",
+			"core:antiMagic",
+			"core:armageddon",
+			"core:berserk",
+			"core:bless",
+			"core:blind",
+			"core:bloodlust",
+			"core:chainLightning",
+			"core:clone",
+			"core:counterstrike",
+			"core:cure",
+			"core:curse",
+			"core:deathRipple",
+			"core:destroyUndead",
+			"core:dimensionDoor",
+			"core:disguise",
+			"core:dispel",
+			"core:disruptingRay",
+			"core:earthElemental",
+			"core:earthquake",
+			"core:fireElemental",
+			"core:fireShield",
+			"core:fireWall",
+			"core:fireball",
+			"core:fly",
+			"core:forceField",
+			"core:forgetfulness",
+			"core:fortune",
+			"core:frenzy",
+			"core:frostRing",
+			"core:haste",
+			"core:hypnotize",
+			"core:iceBolt",
+			"core:implosion",
+			"core:inferno",
+			"core:landMine",
+			"core:lightningBolt",
+			"core:magicArrow",
+			"core:magicMirror",
+			"core:meteorShower",
+			"core:mirth",
+			"core:misfortune",
+			"core:prayer",
+			"core:precision",
+			"core:protectAir",
+			"core:protectEarth",
+			"core:protectFire",
+			"core:protectWater",
+			"core:quicksand",
+			"core:removeObstacle",
+			"core:resurrection",
+			"core:sacrifice",
+			"core:scuttleBoat",
+			"core:shield",
+			"core:slayer",
+			"core:slow",
+			"core:sorrow",
+			"core:stoneSkin",
+			"core:summonBoat",
+			"core:teleport",
+			"core:titanBolt",
+			"core:townPortal",
+			"core:viewAir",
+			"core:viewEarth",
+			"core:visions",
+			"core:waterElemental",
+			"core:waterWalk",
+			"core:weakness"
+		]
+	},
+	"defeatIconIndex" : 3,
+	"defeatString" : "Test defeatString",
+	"difficulty" : "NORMAL",
+	"mapLevels" : {
+		"surface" : {
+			"height" : 144,
+			"index" : 0,
+			"width" : 144
+		},
+		"underground" : {
+			"height" : 144,
+			"index" : 1,
+			"width" : 144
+		}
+	},
+	"mods" : null,
+	"name" : "ObjectPropertyTest v1",
+	"players" : {
+		"blue" : {
+			"canPlay" : "AIOnly",
+			"heroes" : {
+				"randomHero_104" : {}
+			}
+		},
+		"green" : {
+			"canPlay" : "AIOnly",
+			"heroes" : {
+				"randomHero_105" : {}
+			}
+		},
+		"orange" : {
+			"canPlay" : "AIOnly",
+			"heroes" : {
+				"randomHero_106" : {}
+			}
+		},
+		"pink" : {
+			"canPlay" : "AIOnly",
+			"heroes" : {
+				"randomHero_109" : {}
+			}
+		},
+		"purple" : {
+			"canPlay" : "AIOnly",
+			"heroes" : {
+				"randomHero_107" : {}
+			}
+		},
+		"red" : {
+			"canPlay" : "PlayerOrAI",
+			"mainHero" : "hero_101",
+			"heroes" : {
+				"hero_101" : {
+					"type" : "core:ingham"
+				}
+			}
+		},
+		"tan" : {
+			"canPlay" : "AIOnly",
+			"heroes" : {
+				"randomHero_103" : {}
+			}
+		},
+		"teal" : {
+			"canPlay" : "AIOnly",
+			"heroes" : {
+				"randomHero_108" : {}
+			}
+		}
+	},
+	"triggeredEvents" : {
+		"standardVictory" : {
+			"condition" : [
+				"standardWin"
+
+			],
+			"effect" : {
+				"messageToSend" : "%s standardVictory effect test message",
+				"type" : "victory"
+			},
+			"message" : "Test standardVictory message"
+		},
+		"standardDefeat" : {
+			"condition" : [
+				"daysWithoutTown",
+				{
+					"value" : 7
+				}
+			],
+			"effect" : {
+				"messageToSend" : "%s standardDefeat effect test message",
+				"type" : "defeat"
+			},
+			"message" : "%s, standardDefeat"
+		}
+	},
+	"victoryIconIndex" : 11,
+	"victoryString" : "Test victoryString",
+	"versionMajor" : 1,
+	"versionMinor" : 1
+}

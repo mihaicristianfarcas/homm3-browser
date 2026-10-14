@@ -1,0 +1,632 @@
+{
+    "version": 2,
+    "configurePresets": [
+        {
+            "name": "release-binary-dir",
+            "hidden": true,
+            "binaryDir": "${sourceDir}/out/build/${presetName}"
+        },
+        {
+            "name": "build-with-conan",
+            "hidden": true,
+            "cacheVariables": {
+                "CMAKE_TOOLCHAIN_FILE": "${sourceDir}/conan-generated/conan_toolchain.cmake"
+            }
+        },
+        {
+            "name": "base-release",
+            "inherits": "release-binary-dir",
+            "hidden": true,
+            "cacheVariables": {
+                "CMAKE_INSTALL_PREFIX": "${sourceDir}/out/install/${presetName}",
+                "PACKAGE_FILE_NAME" : "$env{VCMI_PACKAGE_FILE_NAME}",
+                "PACKAGE_NAME_SUFFIX" : "$env{VCMI_PACKAGE_NAME_SUFFIX}",
+                "CMAKE_BUILD_TYPE": "RelWithDebInfo",
+                "ENABLE_TEST": "OFF",
+                "ENABLE_STRICT_COMPILATION": "ON",
+                "ENABLE_GOLDMASTER": "$env{VCMI_PACKAGE_GOLDMASTER}",
+                "ENABLE_PCH" : "OFF"
+            }
+        },
+        {
+            "name": "default-release",
+            "inherits": "base-release",
+            "hidden": true,
+            "generator": "Ninja",
+            "cacheVariables": {
+                "FORCE_BUNDLED_FL": "OFF"
+            }
+        },
+        {
+            "name" : "linux-release",
+            "inherits" : "default-release",
+            "hidden": true,
+            "cacheVariables": {
+                "CMAKE_INSTALL_PREFIX" : "/usr/local",
+                "ONNXRUNTIME_ROOT": "/opt/onnxruntime"
+            }
+        },
+        {
+            "name": "linux-test",
+            "inherits": "linux-release",
+            "hidden": true,
+            "cacheVariables": {
+                "ENABLE_LOBBY": "ON",
+                "ENABLE_TEST": "ON",
+                "ENABLE_LUA": "ON"
+            }
+        },
+        {
+            "name": "linux-clang-release",
+            "displayName": "Clang x86_64-pc-linux-gnu",
+            "description": "VCMI Linux Clang",
+            "inherits": "linux-release",
+            "cacheVariables": {
+                "CMAKE_C_COMPILER": "/usr/bin/clang",
+                "CMAKE_CXX_COMPILER": "/usr/bin/clang++",
+                "ENABLE_DISCORD": "OFF"
+            }
+        },
+        {
+            "name": "linux-clang-release-ccache",
+            "displayName": "Clang x86_64-pc-linux-gnu with ccache",
+            "description": "VCMI Linux Clang with ccache",
+            "inherits": "linux-release",
+            "cacheVariables": {
+                "ENABLE_CCACHE": "ON",
+                "ENABLE_DISCORD": "OFF"
+            }
+        },
+        {
+            "name": "linux-gcc-release",
+            "displayName": "GCC x86_64-pc-linux-gnu",
+            "description": "VCMI Linux GCC",
+            "inherits": "linux-release",
+            "cacheVariables": {
+                "ENABLE_LUA" : "ON",
+                "CMAKE_C_COMPILER": "/usr/bin/gcc",
+                "CMAKE_CXX_COMPILER": "/usr/bin/g++"
+            }
+        },
+        {
+			"name": "linux-gcc-release-lobby",
+            "displayName": "GCC x86_64-pc-linux-gnu (lobby only)",
+            "description": "VCMI Linux GCC",
+            "inherits": "linux-release",
+            "cacheVariables": {
+				"ENABLE_CLIENT" : "OFF",
+				"ENABLE_SERVER" : "OFF",
+				"ENABLE_EDITOR" : "OFF",
+				"ENABLE_LAUNCHER" : "OFF",
+				"ENABLE_MINIMAL_LIB" : "ON",
+				"ENABLE_STATIC_LIBS" : "ON",
+				"ENABLE_LOBBY" : "ON",
+                "CMAKE_C_COMPILER": "/usr/bin/gcc",
+                "CMAKE_CXX_COMPILER": "/usr/bin/g++"
+            }
+        },
+        {
+            "name": "linux-gcc-release-appimage",
+            "displayName": "GCC x86_64-pc-linux-gnu for appimage",
+            "description": "VCMI Linux GCC",
+            "inherits": ["linux-release", "build-with-conan"],
+            "cacheVariables": {
+                "CMAKE_C_COMPILER": "/usr/bin/gcc",
+                "CMAKE_CXX_COMPILER": "/usr/bin/g++",
+                "ENABLE_STATIC_LIBS": "ON",
+                "FORCE_BUNDLED_FL": "ON"
+            }
+        },
+        {
+            "name": "linux-gcc-release-arm64-appimage",
+            "displayName": "GCC aarch64-linux-gnu for appimage",
+            "description": "VCMI Linux GCC ARM64",
+            "inherits": ["linux-release", "build-with-conan"],
+            "cacheVariables": {
+                "CMAKE_C_COMPILER": "/usr/bin/gcc",
+                "CMAKE_CXX_COMPILER": "/usr/bin/g++",
+                "ENABLE_STATIC_LIBS": "ON",
+                "FORCE_BUNDLED_FL": "ON"
+            }
+        },
+        {
+            "name": "linux-gcc-release-ccache",
+            "displayName": "GCC x86_64-pc-linux-gnu with ccache",
+            "description": "VCMI Linux GCC with ccache",
+            "inherits": "linux-release",
+            "cacheVariables": {
+                "ENABLE_CCACHE": "ON"
+            }
+        },
+        {
+            "name": "linux-gcc-debug",
+            "displayName": "GCC x86_64-pc-linux-gnu (debug)",
+            "description": "VCMI Linux GCC (Debug)",
+            "inherits": "linux-test",
+            "cacheVariables": {
+                "CMAKE_BUILD_TYPE": "Debug",
+                "ENABLE_LUA" : "ON",
+                "CMAKE_C_COMPILER": "/usr/bin/gcc",
+                "CMAKE_CXX_COMPILER": "/usr/bin/g++"
+            }
+        },
+        {
+            "name": "linux-clang-debug",
+            "displayName": "Clang x86_64-pc-linux-gnu (debug)",
+            "description": "VCMI Linux Clang (Debug)",
+            "inherits": "linux-test",
+            "cacheVariables": {
+                "CMAKE_BUILD_TYPE": "Debug",
+                "ENABLE_LUA" : "ON",
+                "CMAKE_C_COMPILER": "/usr/bin/clang",
+                "CMAKE_CXX_COMPILER": "/usr/bin/clang++",
+                "ENABLE_DISCORD": "OFF"
+            }
+        },
+        {
+            "name": "linux-clang-test",
+            "displayName": "Clang x86_64-pc-linux-gnu with unit testing",
+            "description": "VCMI Linux Clang",
+            "inherits": "linux-test",
+            "cacheVariables": {
+                "CMAKE_C_COMPILER": "/usr/bin/clang",
+                "CMAKE_CXX_COMPILER": "/usr/bin/clang++",
+                "ENABLE_DISCORD": "OFF"
+            }
+        },
+        {
+            "name": "linux-gcc-test",
+            "displayName": "GCC x86_64-pc-linux-gnu with unit testing",
+            "description": "VCMI Linux GCC",
+            "inherits": "linux-test",
+            "cacheVariables": {
+                "ENABLE_LUA" : "OFF",
+                "CMAKE_C_COMPILER": "/usr/bin/gcc",
+                "CMAKE_CXX_COMPILER": "/usr/bin/g++"
+            }
+        },
+        {
+            "name": "windows-mingw-release",
+            "displayName": "Windows x64 MinGW Release",
+            "description": "VCMI Windows Ninja using MinGW",
+            "inherits": "default-release",
+            "cacheVariables": {
+                "CMAKE_BUILD_TYPE": "Release",
+                "CMAKE_C_COMPILER": "gcc",
+                "CMAKE_CXX_COMPILER": "g++"
+            }
+        },
+        {
+            "name": "windows-msvc-release",
+            "displayName": "Windows x64 RelWithDebInfo",
+            "description": "VCMI RelWithDebInfo build",
+            "inherits": [
+                "build-with-conan",
+                "default-release"
+            ],
+            "generator": "Visual Studio 17 2022",
+            "architecture": {
+                "value": "x64",
+                "strategy": "set"
+            },
+            "cacheVariables": {
+                "CMAKE_POLICY_DEFAULT_CMP0091": "NEW"
+            }
+        },
+        {
+            "name": "windows-msvc-release-x86",
+            "displayName": "Windows x86 RelWithDebInfo",
+            "description": "VCMI RelWithDebInfo build",
+            "inherits": [
+                "build-with-conan",
+                "default-release"
+            ],
+            "generator": "Visual Studio 17 2022",
+            "cacheVariables": {
+                "CMAKE_POLICY_DEFAULT_CMP0091": "NEW",
+                "CMAKE_GENERATOR_PLATFORM": "WIN32"
+            }
+        },
+        {
+            "name": "windows-msvc-release-arm64",
+            "displayName": "Windows ARM64 RelWithDebInfo",
+            "description": "VCMI Windows ARM64 build",
+            "inherits": [
+                "build-with-conan",
+                "default-release"
+            ],
+            "generator": "Visual Studio 17 2022",
+            "architecture": {
+                "value": "ARM64",
+                "strategy": "set"
+            },
+            "cacheVariables": {
+                "CMAKE_POLICY_DEFAULT_CMP0091": "NEW"
+            }
+        },
+        {
+            "name": "windows-msvc-release-ccache",
+            "displayName": "Windows x64 RelWithDebInfo with ccache",
+            "description": "VCMI RelWithDebInfo build with ccache",
+            "inherits": "windows-msvc-release",
+            "cacheVariables": {
+                "ENABLE_CCACHE": "ON"
+            }
+        },
+        {
+            "name": "windows-msvc-ninja-release",
+            "displayName": "Windows x64 RelWithDebInfo (Ninja)",
+            "description": "VCMI RelWithDebInfo build using Ninja + sccache",
+            "inherits": [
+                "build-with-conan",
+                "default-release"
+            ],
+            "generator": "Ninja",
+            "cacheVariables": {
+                "CMAKE_POLICY_DEFAULT_CMP0091": "NEW",
+                "ENABLE_CCACHE": "ON",
+                "CMAKE_C_COMPILER_LAUNCHER": "sccache",
+                "CMAKE_CXX_COMPILER_LAUNCHER": "sccache",
+                "CMAKE_MSVC_DEBUG_INFORMATION_FORMAT": "Embedded",
+                "ENABLE_MULTI_PROCESS_BUILDS": "OFF",
+                "CMAKE_BUILD_TYPE": "RelWithDebInfo",
+                "CMAKE_C_FLAGS_RELWITHDEBINFO": "/O2 /Ob1 /DNDEBUG /Z7",
+                "CMAKE_CXX_FLAGS_RELWITHDEBINFO": "/O2 /Ob1 /DNDEBUG /Z7"
+            }
+        },
+        {
+            "name": "windows-msvc-ninja-release-x86",
+            "displayName": "Windows x86 RelWithDebInfo (Ninja)",
+            "description": "VCMI RelWithDebInfo build using Ninja + sccache (x86)",
+            "inherits": "windows-msvc-ninja-release"
+        },
+        {
+            "name": "windows-msvc-ninja-release-arm64",
+            "displayName": "Windows ARM64 RelWithDebInfo (Ninja)",
+            "description": "VCMI RelWithDebInfo build using Ninja + sccache (ARM64)",
+            "inherits": "windows-msvc-ninja-release"
+        },
+        {
+            "name": "macos-ninja-release",
+            "displayName": "Ninja release",
+            "description": "VCMI MacOS Ninja",
+            "inherits": "default-release"
+        },
+        {
+            "name": "macos-conan-ninja-release",
+            "displayName": "Ninja+Conan release",
+            "description": "VCMI MacOS Ninja using Conan",
+            "inherits": [
+                "build-with-conan",
+                "default-release"
+            ],
+            "cacheVariables": {
+                "CMAKE_BUILD_TYPE": "Release"
+            }
+        },
+        {
+            "name": "macos-arm-conan-ninja-release",
+            "displayName": "Ninja+Conan arm64 release",
+            "description": "VCMI MacOS-arm64 Ninja using Conan",
+            "inherits": "macos-conan-ninja-release"
+        },
+        {
+            "name": "macos-xcode-release",
+            "displayName": "XCode release",
+            "description": "VCMI MacOS Xcode",
+            "inherits": "default-release",
+            "generator": "Xcode"
+        },
+        {
+            "name": "ios-device-conan",
+            "displayName": "Base iOS device using Conan",
+            "description": "Base VCMI preset for iOS device using Conan",
+            "inherits": [
+                "build-with-conan"
+            ],
+            "generator": "Xcode",
+            "binaryDir": "../build-${presetName}",
+            "cacheVariables": {
+                "CMAKE_SYSTEM_NAME": "iOS",
+                "FORCE_BUNDLED_FL": "ON",
+                "ENABLE_EDITOR" : "OFF"
+            }
+        },
+        {
+            "name": "base-ios-release",
+            "displayName": "Base iOS release",
+            "description": "Base VCMI preset for iOS release",
+            "inherits": "base-release",
+            "hidden": true,
+            "cacheVariables": {
+                "BUNDLE_IDENTIFIER_PREFIX": "eu.vcmi"
+            }
+        },
+        {
+            "name": "ios-release-conan",
+            "displayName": "iOS+Conan release",
+            "description": "VCMI iOS release using Conan",
+            "inherits": [
+                "base-ios-release",
+                "ios-device-conan"
+            ],
+            "cacheVariables": {
+                "ENABLE_PCH" : "ON"
+            }
+        },
+        {
+            "name": "ios-release-conan-ccache",
+            "displayName": "iOS+Conan release using ccache",
+            "description": "VCMI iOS release using Conan and ccache",
+            "inherits": "ios-release-conan",
+            "cacheVariables": {
+                "ENABLE_PCH" : "OFF",
+                "ENABLE_CCACHE": "ON"
+            }
+        },
+        {
+            "name": "android-conan-ninja-release",
+            "displayName": "Android release",
+            "description": "VCMI Android Ninja using Conan",
+            "inherits": [
+                "build-with-conan",
+                "default-release"
+            ],
+            "cacheVariables": {
+                "CMAKE_BUILD_TYPE": "RelWithDebInfo",
+                "ANDROIDDEPLOYQT_OPTIONS" : "--aab"
+            }
+        },
+        {
+            "name": "android-daily-release",
+            "displayName": "Android daily release",
+            "description": "VCMI Android daily build",
+            "inherits": "android-conan-ninja-release",
+            "cacheVariables": {
+                "ANDROID_GRADLE_PROPERTIES": "applicationIdSuffix=.daily;signingConfig=dailySigning;applicationLabel=VCMI daily;applicationVariant=daily"
+            }
+        },
+        {
+            "name": "portmaster-release",
+            "displayName": "PortMaster",
+            "description": "VCMI PortMaster",
+            "inherits": "default-release",
+            "cacheVariables": {
+                "CMAKE_BUILD_TYPE": "Release",
+                "CMAKE_INSTALL_PREFIX": ".",
+                "ENABLE_DEBUG_CONSOLE": "OFF",
+                "ENABLE_EDITOR": "OFF",
+                "ENABLE_GITVERSION": "OFF",
+                "ENABLE_LAUNCHER": "OFF",
+                "ENABLE_SERVER": "OFF",
+                "ENABLE_TRANSLATIONS": "OFF",
+                "FORCE_BUNDLED_FL": "ON",
+                "ENABLE_GOLDMASTER": "ON",
+                "VCMI_PORTMASTER": "ON"
+            }
+        }
+    ],
+    "buildPresets": [
+        {
+            "name": "default-release",
+            "hidden": true,
+            "configuration": "RelWithDebInfo"
+        },
+        {
+            "name": "default-debug",
+            "hidden": true,
+            "configuration": "Debug"
+        },
+        {
+            "name": "linux-clang-release",
+            "configurePreset": "linux-clang-release",
+            "inherits": "default-release"
+        },
+        {
+            "name": "linux-clang-release-ccache",
+            "configurePreset": "linux-clang-release-ccache",
+            "inherits": "linux-clang-release"
+        },
+        {
+            "name": "linux-clang-test",
+            "configurePreset": "linux-clang-test",
+            "inherits": "default-release"
+        },
+        {
+            "name": "linux-gcc-test",
+            "configurePreset": "linux-gcc-test",
+            "inherits": "default-release"
+        },
+        {
+            "name": "linux-gcc-release",
+            "configurePreset": "linux-gcc-release",
+            "inherits": "default-release"
+        },
+        {
+            "name": "linux-gcc-release-lobby",
+            "configurePreset": "linux-gcc-release-lobby",
+            "inherits": "linux-gcc-release"
+        },
+        {
+            "name": "linux-gcc-release-appimage",
+            "configurePreset": "linux-gcc-release-appimage",
+            "inherits": "linux-gcc-release"
+        },
+        {
+            "name": "linux-gcc-release-arm64-appimage",
+            "configurePreset": "linux-gcc-release-arm64-appimage",
+            "inherits": "linux-gcc-release"
+        },
+        {
+            "name": "linux-gcc-release-ccache",
+            "configurePreset": "linux-gcc-release-ccache",
+            "inherits": "linux-gcc-release"
+        },
+        {
+            "name": "linux-gcc-debug",
+            "configurePreset": "linux-gcc-debug",
+            "inherits": "default-debug"
+        },
+        {
+            "name": "linux-clang-debug",
+            "configurePreset": "linux-clang-debug",
+            "inherits": "default-debug"
+        },
+        {
+            "name": "macos-xcode-release",
+            "configurePreset": "macos-xcode-release",
+            "inherits": "default-release"
+        },
+        {
+            "name": "macos-ninja-release",
+            "configurePreset": "macos-ninja-release",
+            "inherits": "default-release"
+        },
+        {
+            "name": "macos-conan-ninja-release",
+            "configurePreset": "macos-conan-ninja-release",
+            "inherits": "default-release"
+        },
+        {
+            "name": "macos-arm-conan-ninja-release",
+            "configurePreset": "macos-arm-conan-ninja-release",
+            "inherits": "default-release"
+        },
+        {
+            "name": "windows-mingw-release",
+            "configurePreset": "windows-mingw-release",
+            "inherits": "default-release"
+        },
+        {
+            "name": "windows-msvc-release",
+            "configurePreset": "windows-msvc-release",
+            "inherits": "default-release"
+        },
+        {
+            "name": "windows-msvc-release-x86",
+            "configurePreset": "windows-msvc-release-x86",
+            "inherits": "default-release"
+        },
+        {
+            "name": "windows-msvc-release-arm64",
+            "configurePreset": "windows-msvc-release-arm64",
+            "inherits": "default-release"
+        },
+        {
+            "name": "windows-msvc-release-ccache",
+            "configurePreset": "windows-msvc-release-ccache",
+            "inherits": "windows-msvc-release"
+        },
+        {
+            "name": "windows-msvc-relwithdebinfo",
+            "configurePreset": "windows-msvc-release",
+            "inherits": "default-release"
+        },
+        {
+            "name": "windows-msvc-ninja-release",
+            "configurePreset": "windows-msvc-ninja-release",
+            "inherits": "default-release"
+        },
+        {
+            "name": "windows-msvc-ninja-release-x86",
+            "configurePreset": "windows-msvc-ninja-release-x86",
+            "inherits": "default-release"
+        },
+        {
+            "name": "windows-msvc-ninja-release-arm64",
+            "configurePreset": "windows-msvc-ninja-release-arm64",
+            "inherits": "default-release"
+        },
+        {
+            "name": "ios-release-conan",
+            "configurePreset": "ios-release-conan",
+            "inherits": "default-release",
+            "configuration": "RelWithDebInfo",
+            "targets": ["vcmiclient"],
+            "nativeToolOptions": [
+                "CODE_SIGNING_ALLOWED_FOR_APPS=NO"
+            ]
+        },
+        {
+            "name": "ios-release-conan-ccache",
+            "configurePreset": "ios-release-conan-ccache",
+            "inherits": "ios-release-conan"
+        },
+        {
+            "name": "android-conan-ninja-release",
+            "configurePreset": "android-conan-ninja-release",
+            "inherits": "default-release"
+        },
+        {
+            "name": "android-daily-release",
+            "configurePreset": "android-daily-release",
+            "inherits": "android-conan-ninja-release"
+        },
+        {
+            "name": "portmaster-release",
+            "configurePreset": "portmaster-release",
+            "inherits": "default-release",
+            "configuration": "Release"
+        }
+    ],
+    "testPresets": [
+        {
+            "name": "default-release",
+            "hidden": true,
+            "output": {
+                "shortProgress": true,
+                "verbosity": "verbose"
+            }
+        },
+        {
+            "name": "linux-clang-debug",
+            "configurePreset": "linux-clang-debug",
+            "inherits": "default-release"
+        },
+        {
+            "name": "linux-clang-release",
+            "configurePreset": "linux-clang-release",
+            "inherits": "default-release"
+        },
+        {
+            "name": "linux-clang-test",
+            "configurePreset": "linux-clang-test",
+            "inherits": "default-release"
+        },
+        {
+            "name": "linux-gcc-debug",
+            "configurePreset": "linux-gcc-debug",
+            "inherits": "default-release"
+        },
+        {
+            "name": "linux-gcc-release",
+            "configurePreset": "linux-gcc-release",
+            "inherits": "default-release"
+        },
+        {
+            "name": "linux-gcc-test",
+            "configurePreset": "linux-gcc-test",
+            "inherits": "default-release"
+        },
+        {
+            "name": "macos-xcode-release",
+            "configurePreset": "macos-xcode-release",
+            "inherits": "default-release"
+        },
+        {
+            "name": "macos-ninja-release",
+            "configurePreset": "macos-ninja-release",
+            "inherits": "default-release"
+        },
+        {
+            "name": "windows-mingw-release",
+            "configurePreset": "windows-mingw-release",
+            "inherits": "default-release"
+        },
+        {
+            "name": "windows-msvc-release",
+            "configurePreset": "windows-msvc-release",
+            "inherits": "default-release"
+        }
+    ]
+}

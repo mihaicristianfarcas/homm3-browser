@@ -1,0 +1,164 @@
+# Installation Linux
+
+VCMI requires data from original Heroes 3: Shadow of Death or Complete editions. Data from native Linux version made by LOKI will not work.
+
+## Step 1: Binaries installation
+
+### Ubuntu - Latest stable build from PPA (recommended)
+
+Up-to-date releases can be found in our PPA here: <https://launchpad.net/~vcmi/+archive/ubuntu/ppa>
+
+To install VCMI from PPA use:
+
+```sh
+    sudo apt-add-repository ppa:vcmi/ppa
+    sudo apt update
+    sudo apt install vcmi
+```
+
+### Ubuntu - Unstable testing build from PPA
+
+We also provide latest, unstable builds mostly suitable for testing here: <https://launchpad.net/~vcmi/+archive/ubuntu/vcmi-latest>
+
+In order to install from this PPA use:
+
+```sh
+    sudo add-apt-repository ppa:vcmi/vcmi-latest
+    sudo apt update
+    sudo apt install vcmi
+```
+
+### Ubuntu - From Ubuntu repository
+
+VCMI stable builds available in "multiverse" repository. Learn how to enable it in [Ubuntu wiki](https://help.ubuntu.com/community/Repositories/Ubuntu).
+Once enabled, you can install VCMI using Ubuntu Store or in terminal using following commands:
+
+```sh
+    sudo apt update
+    sudo apt install vcmi
+```
+
+Note that version available in Ubuntu is outdated. Install via PPA is preferred.
+
+### Debian
+
+Stable VCMI version is available in "contrib" repository. Learn how to enable it in [Debian wiki](https://wiki.debian.org/SourcesList).
+To install VCMI from repository:
+
+```sh
+    sudo apt-get update
+    sudo apt-get install vcmi
+```
+
+### Fedora (40 or newer)
+
+Stable VCMI version is available in RPM Fusion repository. Learn how to enable it in [wiki](https://docs.fedoraproject.org/en-US/quick-docs/rpmfusion-setup/). To install VCMI from repository:
+
+```sh
+    sudo dnf update
+    sudo dnf install vcmi
+```
+
+### Flatpak (distribution-agnostic)
+
+Latest public release build can be installed via Flatpak.
+
+Depending on your distribution, you may need to install flatpak itself. You can find guide for your distribution here: <https://flatpak.org/setup/>
+Once you have flatpak, you can install VCMI package which can be found here: <https://flathub.org/apps/details/eu.vcmi.VCMI>
+
+### AppImage (distribution-agnostic)
+
+Stable and [nightly](https://builds.vcmi.download/branch/) VCMI is also available as AppImage. It's currently built with Ubuntu 24.04 (should be compatible with distributions with glibc>=2.38).
+
+If you also want to use local files (e.g. to have different configurations on system) you can override paths manually if you launch VCMI over a small shell script:
+
+```sh
+#!/bin/sh
+
+BASE_DIR="$(pwd)"
+
+export XDG_DATA_HOME="$BASE_DIR/vcmi_data/data"
+export XDG_CACHE_HOME="$BASE_DIR/vcmi_data/cache"
+export XDG_CONFIG_HOME="$BASE_DIR/vcmi_data/config"
+
+./*vcmi*.AppImage
+```
+
+### Other distributions
+
+For other distributions, VCMI can be installed from 3rd-party repositories listed below. Note that these repositories are not supported by vcmi team and may not be up to date.
+
+- Archlinux [vcmi](https://aur.archlinux.org/packages/vcmi/) [vcmi-git](https://aur.archlinux.org/packages/vcmi-git/)
+- openSUSE [1 Click Install](https://software.opensuse.org/download.html?project=games&package=vcmi)
+
+If you are interested in providing builds for other distributions, please let us know.
+
+### Compiling from source
+
+Please check following developer guide: [How to build VCMI (Linux)](../developers/Building_Linux.md)
+
+## Step 2: Installing Heroes III data files
+
+To install VCMI you will need Heroes III: Shadow of Death or Complete edition.
+
+### Install data using vcmibuilder script
+
+Recommended for non-Flatpak installs.
+
+To install Heroes 3 data using automated script you need any of:
+
+- Offline Installer downloaded from gog.com (both .exe and .bin files are required)
+- Directory with preinstalled game
+- One or two CD's or CD images
+
+Run the script using options appropriate to your input files:
+
+```sh
+vcmibuilder --cd1 /path/to/iso/or/cd --cd2 /path/to/second/cd
+vcmibuilder --gog /path/to/gog.com/installer.exe
+vcmibuilder --data /path/to/h3/data
+```
+
+You should use only one of these commands.
+
+On flatpak install, it's also possible to run the script, but any path seems to be interpreted from within the Flatpak sandbox:
+
+```sh
+flatpak run --command=vcmibuilder eu.vcmi.VCMI --data /path/to/h3/data`
+```
+
+### Install data using gog.com offline installer
+
+Download both files for the "offline backup game installers" and extract them using innoextract tool.
+
+You can select both downloaded files in launcher to extract automatically.
+
+gog.com download page:
+![GoG-Installer](images/gog_offline_installer.png)
+
+Alternatively you can use the classic way:
+
+```sh
+innoextract --output-dir=~/Downloads/HoMM3 "setup_heroes_of_might_and_magic_3_complete_4.0_(28740).exe"
+```
+
+(note that installer file name might be different)
+
+Once innoextract completes, start VCMI Launcher and choose to place existing files. Select the ~/Downloads/HoMM3 directory. Once placing is complete, you can delete both offline installer files as well as ~/Downloads/HoMM3.
+
+### Install manually using existing Heroes III data
+
+Copy "Data", "Maps" and "Mp3" from Heroes III to `$HOME/.local/share/vcmi/`
+Or, in case of flatpak install to `$HOME/.var/app/eu.vcmi.VCMI/data/vcmi/`
+On some distributions $XDG_DATA_HOME could differ so instead you may need to use: `$XDG_DATA_HOME/vcmi/`
+
+## Step 3: Launching game
+
+VCMI should be available via desktop environment menu or launcher (Games/Strategy/VCMI)
+
+To start the game type in console: `vcmilauncher`
+Or, to start game directly avoiding Launcher: `vcmiclient`
+
+## Reporting bugs
+
+Please report any issues with packages according to [Bug Reporting Guidelines](Bug_Reporting_Guidelines.md)
