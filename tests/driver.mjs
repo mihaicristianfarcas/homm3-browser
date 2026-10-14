@@ -121,7 +121,12 @@ const page = (await browser.pages())[0] ?? await browser.newPage();
 page.on('console', (msg) => record(`[${msg.type()}] ${msg.text()}`));
 // uncaught exceptions in game threads (workers), with stack traces
 page.on('workercreated', (worker) => {
-	const session = worker.client;
+	let session;
+	try {
+		session = worker.client; // CDP only, not available with Firefox (WebDriver BiDi)
+	} catch {
+		return;
+	}
 	if (!session?.on)
 		return;
 	session.on('Runtime.exceptionThrown', ({ exceptionDetails }) => {
