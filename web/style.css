@@ -117,7 +117,7 @@ code {
 	margin-top: 20px;
 }
 
-button {
+button, .button {
 	font: inherit;
 	cursor: pointer;
 	border-radius: 4px;
@@ -129,12 +129,21 @@ button {
 	transition: transform 120ms ease-out, filter 120ms ease-out;
 }
 
-button:hover { filter: brightness(1.15); }
-button:active { transform: scale(0.97); }
-button:focus-visible { outline: 2px solid var(--focus); outline-offset: 2px; }
+/* links that look like buttons */
+.button {
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	text-decoration: none;
+}
+.button[hidden] { display: none; }
+
+button:hover, .button:hover { filter: brightness(1.15); }
+button:active, .button:active { transform: scale(0.97); }
+button:focus-visible, .button:focus-visible { outline: 2px solid var(--focus); outline-offset: 2px; }
 button:disabled { opacity: 0.5; cursor: default; filter: none; transform: none; }
 
-button.primary {
+button.primary, .button.primary {
 	min-width: 180px;
 	font-size: 1.2rem;
 	color: #1a1205;
@@ -225,5 +234,5 @@ button.danger { border-color: #7a3328; background: linear-gradient(180deg, #4a1d
 
 @media (prefers-reduced-motion: reduce) {
 	.spinner { animation-duration: 3s; }
-	button, .dropzone, .corner-button { transition: none; }
+	button, .button, .dropzone, .corner-button { transition: none; }
 }

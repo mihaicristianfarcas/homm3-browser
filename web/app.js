@@ -478,7 +478,10 @@ function stopGame(title, message, showLog = false) {
 	gameStopped = true;
 	// a crashed game can't close its audio itself
 	game?.SDL2?.audioContext?.close().catch(() => {});
-	endGame(title, message, showLog);
+	if (isOutOfMemory(message))
+		showOutOfMemory();
+	else
+		endGame(title, message, showLog);
 }
 
 function endGame(title, message, showLog = false) {
@@ -487,10 +490,52 @@ function endGame(title, message, showLog = false) {
 	$('ended-message').textContent = message;
 	$('ended-log').hidden = !showLog;
 	$('ended-log').textContent = recentLog.slice(-60).join('\n');
+	$('new-tab').hidden = true;
+	$('restart').hidden = false;
 	$('fullscreen').hidden = true;
 	if (document.fullscreenElement)
 		document.exitFullscreen?.();
 	showScreen('ended');
+}
+
+// ------------------------------------------------------------------------------------------
+// Memory
+// ------------------------------------------------------------------------------------------
+
+const MB = 1024 * 1024;
+const WASM_PAGE_SIZE = 65536;
+
+/// Sizes to try for the game's memory, in MB: [initial, maximum]. It grows on demand up to the maximum.
+/// The maximum is reserved up front, which phones may refuse. The initial size must be at least the
+/// game's INITIAL_MEMORY (vcmi/clientapp/CMakeLists.txt)
+const MEMORY_SIZES = [[256, 2048], [128, 1024], [64, 768]];
+
+/// Creates the game's WebAssembly memory, the largest the browser allows. Returns null if it refuses all.
+/// Phones limit the memory of a tab, and Safari frees the memory of a page only some time after it was
+/// reloaded, so a few reloads in a row can exhaust it. A new tab starts with a fresh allowance
+function createGameMemory() {
+	for (const [initial, maximum] of MEMORY_SIZES) {
+		try {
+			return new WebAssembly.Memory({ initial: (initial * MB) / WASM_PAGE_SIZE, maximum: (maximum * MB) / WASM_PAGE_SIZE, shared: true });
+		} catch (error) {
+			log(`Could not reserve ${maximum} MB of memory: ${error.message}`, true);
+		}
+	}
+	return null;
+}
+
+function isOutOfMemory(text) {
+	return /out of memory|\bOOM\b|bad_alloc|Array buffer allocation failed/i.test(String(text ?? ''));
+}
+
+function showOutOfMemory() {
+	endGame('Not enough memory',
+		'The browser did not give the game enough memory. This mostly happens on phones and tablets, '
+		+ 'often after reloading the page a few times, because the memory of the previous game is freed only later. '
+		+ 'Open the game in a new tab and close this one.');
+	$('new-tab').href = location.href;
+	$('new-tab').hidden = false;
+	$('restart').hidden = true;
 }
 
 /// Game files in browser storage can only be opened by one tab at a time
@@ -507,6 +552,12 @@ function acquireGameLock() {
 }
 
 async function startGame() {
+	const memory = createGameMemory();
+	if (!memory) {
+		showOutOfMemory();
+		return;
+	}
+
 	if (!(await acquireGameLock())) {
 		endGame('The game is already open', 'Heroes III is already running in another tab or window of this browser. Close it first, or continue playing there.');
 		$('restart').textContent = 'Try again';
@@ -523,7 +574,9 @@ async function startGame() {
 			gameConfig.logLevel = params.get('debug') || 'debug';
 
 		await loadScript('vcmiclient.js');
-		game = await createVcmiModule({
+		// the module object is filled in while the game loads, keep it from the start for stopping it
+		game = {
+			wasmMemory: memory,
 			vcmiConfig: gameConfig,
 			canvas: $('canvas'),
 			mainScriptUrlOrBlob: new URL('vcmiclient.js', location.href).href,
@@ -540,7 +593,8 @@ async function startGame() {
 					module.ENV.SDL_AUDIODRIVER = 'dummy';
 			}],
 			onAbort: (reason) => stopGame('The game stopped because of an error', String(reason ?? ''), true),
-		});
+		};
+		await createVcmiModule(game);
 		$('loading-label').textContent = 'Starting VCMI…';
 	} catch (error) {
 		stopGame('The game could not start', error?.message ?? String(error), true);
@@ -610,6 +664,13 @@ function setupInput() {
 			event.preventDefault();
 			event.returnValue = '';
 		}
+	});
+	// End the game's threads right away when the page goes (also on reload and "Back to launcher").
+	// The browser does it as well, but later, and the game's memory is only freed once all of them ended:
+	// on phones a few reloads in a row could otherwise leave too little memory for the next start
+	window.addEventListener('pagehide', (event) => {
+		if (!event.persisted)
+			game?.PThread?.terminateAllThreads();
 	});
 
 	$('fullscreen').addEventListener('click', () => {

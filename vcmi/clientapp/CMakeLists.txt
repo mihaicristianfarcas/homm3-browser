@@ -55,17 +55,21 @@ if(EMSCRIPTEN)
 		"-sSTACK_SIZE=8MB"
 		"-sDEFAULT_PTHREAD_STACK_SIZE=4MB"
 
+		# Memory starts small and grows as needed. The page creates it (Module.wasmMemory) so that it can
+		# pick the size and handle browsers refusing it, see web/app.js. INITIAL_MEMORY is the smallest it accepts
 		"-sMALLOC=mimalloc"
 		"-sALLOW_MEMORY_GROWTH=1"
-		"-sINITIAL_MEMORY=512MB"
-		"-sMAXIMUM_MEMORY=4GB"
+		"-sINITIAL_MEMORY=64MB"
+		"-sMAXIMUM_MEMORY=2GB"
+		# Emscripten's default list of Module settings read at startup, plus wasmMemory
+		"-sINCOMING_MODULE_JS_API=['ENVIRONMENT','arguments','canvas','dynamicLibraries','elementPointerLock','instantiateWasm','locateFile','monitorRunDependencies','noExitRuntime','noInitialRun','onAbort','onExit','onRuntimeInitialized','postRun','preInit','preRun','print','printErr','setStatus','statusMessage','stderr','stdin','stdout','thisProgram','wasm','websocket','wasmMemory']"
 
 		"-sWASMFS=1"
 		"-sEXIT_RUNTIME=0"
 		"-sENVIRONMENT=web,worker"
 		"-sMODULARIZE=1"
 		"-sEXPORT_NAME=createVcmiModule"
-		"-sEXPORTED_RUNTIME_METHODS=['HEAPU8','ENV']"
+		"-sEXPORTED_RUNTIME_METHODS=['HEAPU8','ENV','PThread']"
 		"--profiling-funcs"
 		"--js-library=${VCMI_WEB_JS_LIBRARY}"
 
