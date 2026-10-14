@@ -1,110 +1,120 @@
 # Heroes of Might and Magic III in the browser
 
-Heroes III Complete (Restoration of Erathia, Armageddon's Blade, Shadow of Death) running in a web
-browser, with online multiplayer between browsers. It is the open-source [VCMI](https://vcmi.eu) engine
-compiled to WebAssembly; the original game files are supplied by each player and never leave their
-computer.
+Play **Heroes of Might and Magic III Complete** in a browser tab: single scenarios, campaigns,
+random maps, hot-seat and **online multiplayer with your friends**, on Windows, macOS, Linux,
+iPad or phone, with nothing to install.
 
-**Play:** https://your-machine.your-tailnet.ts.net (Tailscale network)
+It is the open-source [VCMI](https://vcmi.eu) engine compiled to WebAssembly, plus a small
+server that one person in your group runs to bring everyone together.
 
-Works in current Chrome / Edge / Helium, Firefox and Safari 17+.
+![Dungeon town screen, running in a browser](docs/images/town.jpg)
 
-## Playing
+> [!IMPORTANT]
+> This project contains no game assets. Every player needs their own copy of Heroes III Complete
+> (for example from [GOG](https://www.gog.com/game/heroes_of_might_and_magic_3_complete_edition)).
 
-1. Open the **invite link** (`https://…/?key=…`, printed by the deploy script, or *Copy invite link*
-   on the launcher). The game files are downloaded from the server into the browser's private
-   storage (OPFS) once, about 360 MB; later visits start right away.
-   Without an invite link, choose your own Heroes III Complete installation folder instead
-   (GOG: `C:\GOG Games\HoMM 3 Complete`); `Data`, `Maps` and `Mp3` are copied from it.
-2. Press **Play**. Saves and settings are kept in the browser, per site. Cutscene videos are not used.
+## Who does what
 
-Single player, campaigns and hot-seat work like the desktop game.
+| You are... | You need | Start here |
+| --- | --- | --- |
+| **A player** | A browser and a link from your lobby master | [Playing](docs/playing.md) |
+| **A lobby master**: you run the server for your group | A computer that is on while you play, and the game | [Hosting](docs/hosting.md) |
+| **A developer** | macOS or Linux, some patience for the first build | [Building](docs/building.md), [Architecture](docs/architecture.md), [Contributing](CONTRIBUTING.md) |
 
-**Online multiplayer:** *New Game → Multiplayer → Online Lobby* (the globe button). Create an
-account (4+ letters), then one player creates a room and the others join it. The host's game
-server runs inside the host's browser; everyone connects through the lobby server, so no ports
-need to be opened anywhere. LAN *Host*/*Join* by IP is not available in browsers.
+## Highlights
 
-Launcher URL options: `?autostart` (skip the launcher), `?debug` or `?debug=trace` (verbose
-logging in the browser console), `?audio=off`.
+- **The full game**: Restoration of Erathia, Armageddon's Blade and Shadow of Death scenarios and
+  campaigns, random maps, hot-seat, the VCMI interface improvements and AI.
+- **Online multiplayer without port forwarding**: everyone meets in the lobby on your server, and
+  each match runs inside the host player's browser.
+- **One link for friends**: the lobby master can offer their game files, so players who own the
+  game don't have to find and copy the installation folder (useful on phones and tablets).
+  The files are downloaded once (about 360 MB) into the browser's private storage.
+- **Easy to host**: Docker Compose on Windows, macOS or Linux, or a Linux/WSL service, and an HTTPS
+  address for your friends through [Tailscale](https://tailscale.com) or
+  [Cloudflare Tunnel](https://developers.cloudflare.com/cloudflare-one/connections/connect-networks/), both free.
+
+## Quick start
+
+**Lobby master**, with [Docker](https://docs.docker.com/get-started/get-docker/) installed:
+
+```sh
+curl -fsSLO https://github.com/mihaicristianfarcas/homm3-browser/releases/latest/download/homm3-browser.tar.gz
+tar -xzf homm3-browser.tar.gz && cd homm3-browser
+cp .env.example .env            # optional: set HOMM3_DIR and GAMEDATA_KEY to offer your game files
+docker compose --profile quick-tunnel up -d --build
+docker compose logs quick-tunnel | grep trycloudflare.com
+```
+
+The address appears in the log after a few seconds. Send your friends that `https://….trycloudflare.com`
+address, followed by `/?key=<your GAMEDATA_KEY>`
+if you offer the game files. That address is temporary; [Hosting](docs/hosting.md) shows how to get a
+permanent one and every other option, step by step.
+
+**Players**: open the link, wait for the one-time download (or pick your own Heroes III folder),
+press **Play**. To play together: *New Game → Multiplayer → Online Lobby* (the globe).
+
+![Launcher](docs/images/launcher.jpg)
+
+## Browser support
+
+| Browser | |
+| --- | --- |
+| Chrome, Edge, Brave and other Chromium browsers | Supported |
+| Firefox | Supported |
+| Safari 17 or newer, on Mac, iPhone and iPad | Supported |
+
+The page must be opened over **HTTPS** (or as `localhost`): browsers only allow the WebAssembly
+threads the game needs on secure pages. The hosting guide sets this up for you.
+
+## Limitations
+
+- No cutscene videos: the intro and campaign videos are skipped.
+- LAN games by IP address (*Host* / *Join*) are not available, because browsers can't open network
+  ports. Use the Online Lobby instead; it works on a local network too.
+- Horn of the Abyss content is not supported.
+- Phones work, but have little memory for large maps; a computer or tablet is more comfortable.
+- Saved games and the downloaded files live in the browser, separately for every address the game
+  is opened from.
 
 ## How it works
 
 ```
- browser tab                                              server (Linux / WSL)
-┌────────────────────────────────────────────┐          ┌────────────────────────────┐
-│ main thread: page, input, audio, WebSockets │◄──wss───►│ server.mjs                 │
-│ worker: VCMI client + in-process game server│          │  ├ static files (COOP/COEP)│
-│   ├ renders to an OffscreenCanvas (WebGL)   │          │  └ /net/lobby/3031 ⇄ TCP ──┼─► vcmilobby :3031
-│   ├ AI and helper threads (pthreads)        │          └────────────────────────────┘
-│   └ files: /vcmi (bundled), /opfs (storage) │
-└────────────────────────────────────────────┘
+ player's browser tab                                          lobby master's computer
+┌───────────────────────────────────────────────┐            ┌──────────────────────────────┐
+│ page: launcher, input, audio, WebSockets       │◄── HTTPS ─►│ web server (server/)         │
+│ worker: VCMI client + game server (host only)  │            │  ├ the game and launcher     │
+│   ├ renders to an OffscreenCanvas (WebGL)      │            │  ├ game files (with a key)   │
+│   ├ AI and helper threads                      │            │  └ /net/lobby ⇄ TCP ─────────┼─► VCMI lobby
+│   └ files in the browser's private storage     │            └──────────────────────────────┘
+└───────────────────────────────────────────────┘
 ```
 
-- `vcmi/` — VCMI 1.7.5 with the browser port (see [UPSTREAM.md](UPSTREAM.md); `git diff` against
-  the first commit shows every change). Main parts:
-  - `lib/network/WebNetworkHandler.*` + `clientapp/web/library_vcmi.js`: WebSocket networking,
-    in-process server connections, timers without an asio reactor
-  - `clientapp/WebPlatform.*`: file system mounts, browser-driven main loop, page integration
-  - `lib/filesystem/CFileInputStream.cpp`: buffered `pread` reads (browser storage is slow to seek)
-  - `client/renderSDL/ScreenHandler.cpp`: the canvas behaves as a resizable window
-- `patches/` — SDL2 Emscripten backend patch so SDL can render and play audio from a worker
-- `web/` — launcher page: browser checks, game file import, game start, input integration
-- `server/` — web server with cross-origin isolation headers and an allow-listed WebSocket-to-TCP
-  bridge to the lobby
-- `deploy/`, `scripts/deploy-wsl.sh` — installation into WSL as systemd services, published
-  with `tailscale serve`
-- `tests/` — browser drivers (Puppeteer for Helium/Firefox, WebDriver for Safari)
+The VCMI client, its in-process game server and the AIs are compiled to WebAssembly with
+Emscripten and run in a worker thread. Network connections are WebSockets that the web server
+bridges to the native VCMI lobby. Details are in [Architecture](docs/architecture.md).
 
-## Building
+## Repository
 
-macOS with Homebrew (`cmake ninja pkg-config python@3.12 boost sqlite minizip`):
+| Path | |
+| --- | --- |
+| `vcmi/` | VCMI 1.7.5 with the browser port ([UPSTREAM.md](UPSTREAM.md); `git diff` against the first commit shows every change) |
+| `web/` | Launcher page: browser checks, game files, starting the game |
+| `server/` | Web server with the headers WebAssembly threads need, game file downloads and the lobby bridge |
+| `deploy/`, `compose.yaml`, `Dockerfile` | Server installation: Linux/WSL services, Docker, Cloudflare quick tunnels |
+| `scripts/` | Building, running locally, packaging releases, deploying to a Windows PC |
+| `patches/` | SDL2 patch so SDL can render and play audio from a worker |
+| `tests/` | Browser automation for Chromium, Firefox and Safari, server smoke test |
 
-```sh
-git clone --depth 1 https://github.com/emscripten-core/emsdk.git toolchain/emsdk
-EMSDK_PYTHON=$(brew --prefix python@3.12)/bin/python3.12 toolchain/emsdk/emsdk install latest
-EMSDK_PYTHON=$(brew --prefix python@3.12)/bin/python3.12 toolchain/emsdk/emsdk activate latest
+## Credits
 
-scripts/build-deps.sh          # Boost, oneTBB, minizip, libsquish for WebAssembly + patched SDL2 port
-scripts/build-vcmi.sh          # build/vcmi-release/bin/vcmiclient.{js,wasm,data}
-node scripts/package-web.mjs   # dist/ (with Brotli/gzip variants)
-```
+- [VCMI](https://github.com/vcmi/vcmi) and its contributors, who rebuilt Heroes III as an open
+  engine; this project only makes it run in browsers.
+- [Emscripten](https://emscripten.org), [SDL](https://libsdl.org), Boost and oneTBB.
+- New World Computing and 3DO, for the game we still play 25 years later.
 
-Run locally (http://localhost:8642):
+## License
 
-```sh
-scripts/build-lobby.sh && scripts/run-lobby.sh &   # native lobby server on :3031
-(cd server && npm ci && node server.mjs)
-```
-
-Deploy to the Windows/WSL host and publish on the tailnet:
-
-```sh
-scripts/deploy-wsl.sh user@windows-pc
-```
-
-### Server configuration
-
-`server/server.mjs` reads `PORT` (8642), `HOST`, `WEB_ROOT`, `NET_TARGETS`, `LOBBY`, `GAMEDATA_DIR`
-and `GAMEDATA_KEY`.
-
-`GAMEDATA_DIR` makes the server offer the game files (`Data`, `Maps`, `Mp3` of a Heroes III
-installation, videos excluded) at `/gamedata/`; the launcher downloads missing or changed files
-automatically. `GAMEDATA_KEY` restricts the download to players with the invite link — keep it
-set, and keep the link among friends who own the game. `deploy/bundle-gamedata.sh` sets both up
-(the deploy script runs it with `GAMEDATA_SOURCE`, default `C:\GOG Games\HoMM 3 Complete`).
-
-Browsers can only reach TCP services listed in `NET_TARGETS` (`name:port=host:port`, comma
-separated). For example, to also allow the official VCMI lobby for cross-play with desktop VCMI
-players:
-
-```sh
-NET_TARGETS="lobby:3031=127.0.0.1:3031,lobby.vcmi.eu:3031=lobby.vcmi.eu:3031" LOBBY=lobby.vcmi.eu:3031 node server.mjs
-```
-
-On the deployed host these go in `/etc/default/homm3-web`.
-
-## Legal
-
-VCMI is GPL-2.0-or-later; this port is under the same license. Heroes of Might and Magic III is a
-trademark of Ubisoft; you need your own copy of the game data.
+GPL-2.0-or-later, the same as VCMI; see [LICENSE](LICENSE). Heroes of Might and Magic is a
+trademark of Ubisoft. This project is not affiliated with or endorsed by Ubisoft. Only share game
+files with people who own the game.
