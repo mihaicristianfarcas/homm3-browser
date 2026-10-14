@@ -165,8 +165,6 @@ button.danger { border-color: #7a3328; background: linear-gradient(180deg, #4a1d
 .dropzone:hover, .dropzone.dragging { background: rgba(227, 194, 122, 0.08); border-color: var(--gold); }
 .dropzone.disabled { pointer-events: none; opacity: 0.5; }
 
-.option { display: flex; gap: 8px; align-items: center; color: var(--muted); }
-
 .progress .bar {
 	height: 10px;
 	background: rgba(0, 0, 0, 0.5);

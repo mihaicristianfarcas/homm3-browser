@@ -16,7 +16,7 @@ const EXPANSION_FILES = [
 
 // Which parts of an installation get copied, by top-level folder
 const IMPORT_RULES = {
-	data: { dir: 'Data', accept: /\.(lod|snd|pac)$/i, video: /\.vid$/i },
+	data: { dir: 'Data', accept: /\.(lod|snd|pac)$/i },
 	maps: { dir: 'Maps', accept: /\.(h3m|h3c|tut)$/i },
 	mp3: { dir: 'Mp3', accept: /\.mp3$/i },
 };
@@ -104,7 +104,6 @@ async function inspectGameFiles() {
 		expansion: EXPANSION_FILES.map(([path, label]) => ({ label, ok: has(path) })),
 		maps: maps.size,
 		music: music.size,
-		video: data.has('video.vid'),
 		get ready() { return this.required.every((f) => f.ok); },
 		get empty() { return data.size === 0 && maps.size === 0 && music.size === 0; },
 	};
@@ -132,7 +131,6 @@ async function showLauncher() {
 	add(expansionOk ? 'ok' : 'missing', "Armageddon's Blade & Shadow of Death content");
 	add(files.maps ? 'ok' : 'missing', `${files.maps} scenario maps`);
 	add(files.music ? 'ok' : 'optional', files.music ? `${files.music} music tracks` : 'No music (optional)');
-	add(files.video ? 'ok' : 'optional', files.video ? 'Cutscene videos' : 'No cutscene videos (optional)');
 
 	$('play').disabled = !files.ready;
 
@@ -160,7 +158,7 @@ function showImport(canGoBack) {
 }
 
 /// Maps a path inside the chosen folder to its place in game storage, or null to skip the file
-function importTarget(relativePath, includeVideo) {
+function importTarget(relativePath) {
 	const parts = relativePath.split('/').filter(Boolean);
 	// the chosen folder may be the game folder itself or any folder containing it
 	for (let i = 0; i < parts.length - 1; i++) {
@@ -168,18 +166,17 @@ function importTarget(relativePath, includeVideo) {
 		if (!rule || i !== parts.length - 2)
 			continue;
 		const name = parts[parts.length - 1];
-		if (rule.accept.test(name) || (includeVideo && rule.video?.test(name)))
+		if (rule.accept.test(name))
 			return `${rule.dir}/${name}`;
 	}
 	return null;
 }
 
 async function importSelection(entries) {
-	const includeVideo = $('include-video').checked;
 	const files = [];
 	const seen = new Set();
 	for (const { file, path } of entries) {
-		const dest = importTarget(path, includeVideo);
+		const dest = importTarget(path);
 		if (dest && !seen.has(dest.toLowerCase())) {
 			seen.add(dest.toLowerCase());
 			files.push({ file, dest });

@@ -65,6 +65,10 @@ void applyPageSettings()
 			lobby["port"].Integer() = std::stoi(lobbyPort);
 	}
 
+	// the browser build ships without cutscenes
+	Settings video = settings.write["video"];
+	video["showIntro"].Bool() = false;
+
 	// escape sequences only clutter the browser console
 	Settings console = settings.write["logging"]["console"];
 	console["coloredOutputEnabled"].Bool() = false;

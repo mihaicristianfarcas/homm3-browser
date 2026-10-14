@@ -13,8 +13,8 @@ Works in current Chrome / Edge / Helium, Firefox and Safari 17+.
 
 1. Open the site and choose your Heroes III Complete installation folder
    (GOG: `C:\GOG Games\HoMM 3 Complete`). `Data`, `Maps` and `Mp3` are copied into the browser's
-   private storage (OPFS), about 360 MB. Cutscene videos are optional.
-2. Press **Play**. Saves and settings are kept in the browser, per site.
+   private storage (OPFS), about 360 MB.
+2. Press **Play**. Saves and settings are kept in the browser, per site. Cutscene videos are not used.
 
 Single player, campaigns and hot-seat work like the desktop game.
 
