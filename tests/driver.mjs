@@ -113,7 +113,11 @@ const browser = await puppeteer.launch({
 	extraPrefsFirefox: { 'devtools.console.stdout.content': true },
 	userDataDir: profileDir,
 	defaultViewport: null,
-	args: config.browser === 'chrome' ? ['--window-size=1400,900', '--no-first-run', '--no-default-browser-check', '--enable-features=SharedArrayBuffer'] : ['--width=1400', '--height=900'],
+	args: config.browser === 'chrome'
+		? ['--window-size=1400,900', '--no-first-run', '--no-default-browser-check', '--enable-features=SharedArrayBuffer',
+			// --resolve host=ip: bypass local DNS, e.g. for freshly created tunnel addresses
+			...(args.resolve ? [`--host-resolver-rules=MAP ${args.resolve.replace('=', ' ')}`] : [])]
+		: ['--width=1400', '--height=900'],
 	protocolTimeout: 600000,
 });
 const page = (await browser.pages())[0] ?? await browser.newPage();
