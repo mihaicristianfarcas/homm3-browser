@@ -1,0 +1,44 @@
+# Fast checks for every change. The WebAssembly build itself is not run here (it needs a long
+# toolchain and dependency build); see docs/building.md for testing it locally.
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  checks:
+    name: Scripts and server
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 22
+      - name: JavaScript syntax
+        run: for f in web/*.js server/*.mjs scripts/*.mjs tests/*.mjs; do node --check "$f"; done
+      - name: Shell scripts
+        run: shellcheck -S warning scripts/*.sh deploy/*.sh
+      - name: Server smoke test
+        run: |
+          npm ci --prefix server
+          node tests/server-smoke.mjs
+
+  lobby:
+    name: Lobby server image
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v7
+      - name: Build
+        run: docker build --target lobby -t homm3-lobby .
+      - name: Start
+        run: |
+          docker run -d --name lobby homm3-lobby
+          sleep 5
+          docker logs lobby 2>&1 | tee lobby.log
+          grep -q "Starting server on port 3031" lobby.log
+          test "$(docker inspect -f '{{.State.Running}}' lobby)" = true
