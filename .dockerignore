@@ -1,0 +1,8 @@
+# Only vcmi/, scripts/, deploy/, server/ and dist/ are used by the Dockerfile
+.git
+build
+toolchain
+gamedata
+tests
+**/node_modules
+*.log

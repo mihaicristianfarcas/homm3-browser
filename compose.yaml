@@ -1,0 +1,57 @@
+# Game server for Heroes III in the browser. See docs/hosting.md for the full walkthrough.
+#
+#   docker compose up -d --build                              web server on http://localhost:8642
+#   docker compose --profile quick-tunnel up -d --build       ...plus a temporary public HTTPS link
+#   docker compose --profile tunnel up -d --build             ...plus your own Cloudflare tunnel
+#
+# Settings go in a .env file next to this one (see .env.example).
+
+services:
+  lobby:
+    build:
+      context: .
+      target: lobby
+    restart: unless-stopped
+    volumes:
+      - lobby-data:/data
+
+  web:
+    build:
+      context: .
+      target: web
+    restart: unless-stopped
+    depends_on:
+      - lobby
+    ports:
+      # only reachable from this computer; players come in through Tailscale or a Cloudflare tunnel
+      - "127.0.0.1:${PORT:-8642}:8642"
+    environment:
+      # offer the game files to players with the invite link, when HOMM3_DIR is set
+      GAMEDATA_DIR: ${HOMM3_DIR:+/gamedata}
+      GAMEDATA_KEY: ${GAMEDATA_KEY:-}
+    volumes:
+      - ${HOMM3_DIR:-./gamedata}:/gamedata:ro
+
+  # Temporary public link (https://<random>.trycloudflare.com), no Cloudflare account needed.
+  # The address is printed in the log: docker compose logs quick-tunnel
+  quick-tunnel:
+    image: cloudflare/cloudflared:2025.9.1
+    profiles: [quick-tunnel]
+    restart: unless-stopped
+    depends_on:
+      - web
+    command: tunnel --no-autoupdate --url http://web:8642
+
+  # Permanent address on your own domain through a Cloudflare tunnel (CLOUDFLARE_TUNNEL_TOKEN in .env)
+  tunnel:
+    image: cloudflare/cloudflared:2025.9.1
+    profiles: [tunnel]
+    restart: unless-stopped
+    depends_on:
+      - web
+    command: tunnel --no-autoupdate run
+    environment:
+      TUNNEL_TOKEN: ${CLOUDFLARE_TUNNEL_TOKEN:-}
+
+volumes:
+  lobby-data:
