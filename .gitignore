@@ -3,3 +3,4 @@
 /gamedata/
 /dist/
 node_modules/
+*.log
