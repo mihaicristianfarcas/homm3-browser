@@ -7,7 +7,7 @@ iPad or phone, with nothing to install.
 It is the open-source [VCMI](https://vcmi.eu) engine compiled to WebAssembly, plus a small
 server that one person in your group runs to bring everyone together.
 
-![Dungeon town screen, running in a browser](docs/images/town.jpg)
+![The adventure map, running in Safari](docs/images/adventure-map.jpg)
 
 > [!IMPORTANT]
 > This project contains no game assets. Every player needs their own copy of Heroes III Complete
