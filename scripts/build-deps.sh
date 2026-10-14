@@ -29,7 +29,8 @@ fetch() { # url dest-dir
 	local url="$1" dir="$2"
 	[[ -d "$SRC/$dir" ]] && return
 	echo "==> Downloading $url"
-	local archive="$SRC/$(basename "${url%%\?*}")"
+	local archive
+	archive="$SRC/$(basename "${url%%\?*}")"
 	curl -fL --retry 3 -o "$archive" "$url"
 	mkdir -p "$SRC/$dir.tmp"
 	tar -xf "$archive" -C "$SRC/$dir.tmp" --strip-components=1

@@ -2,6 +2,7 @@
 // Assembles the deployable web app in dist/: the launcher page plus the compiled game,
 // with Brotli and gzip variants of large files for the web server to pick from.
 // Usage: node scripts/package-web.mjs [build-dir]   (default build/vcmi-release)
+// Without a game build, the game files already in dist/ are kept (e.g. from a release download).
 
 import fs from 'node:fs';
 import path from 'node:path';
@@ -27,9 +28,12 @@ for (const name of fs.readdirSync(path.join(root, 'web')))
 	outputs.push(copy(path.join(root, 'web', name), path.join(dist, name)));
 for (const name of GAME_FILES) {
 	const from = path.join(buildDir, 'bin', name);
-	if (!fs.existsSync(from))
+	if (fs.existsSync(from))
+		outputs.push(copy(from, path.join(dist, name)));
+	else if (fs.existsSync(path.join(dist, name)))
+		console.log(`${name}: not built in ${path.relative(root, buildDir)}, keeping the one in dist/`); // e.g. dist/ from a release
+	else
 		throw new Error(`Missing ${from} - build the game first (scripts/build-vcmi.sh)`);
-	outputs.push(copy(from, path.join(dist, name)));
 }
 
 for (const file of outputs.filter((f) => COMPRESS.test(f))) {

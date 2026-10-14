@@ -46,4 +46,4 @@ if [[ ! -f "$BUILD/build.ninja" ]]; then
 fi
 
 cmake --build "$BUILD" --target vcmiclient -- -k 0
-ls -la "$BUILD/bin/" 2>/dev/null | grep -E "vcmiclient" || true
+ls -la "$BUILD"/bin/vcmiclient.* 2>/dev/null || true
